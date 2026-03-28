@@ -14,6 +14,6 @@ ENV DATA_DIR=/app/data
 ENV PHOTOS_DIR=/app/data/photos
 ENV BASE_URL=https://bins.hollandit.work
 
-RUN mkdir -p /app/data/photos
+RUN mkdir -p /app/data/photos /app/app/static
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
