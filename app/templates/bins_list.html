@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}All Bins{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-xl font-bold text-gray-900">All Bins</h1>
+  <a href="/qr/sheet/all" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+    🖨 Print All QR Codes
+  </a>
+</div>
+
+<div class="space-y-2">
+{% for bin in bins %}
+<a href="/bin/{{ bin.token }}" class="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between hover:border-indigo-300 hover:shadow-sm transition-all block">
+  <div>
+    <div class="font-medium text-gray-800">{{ bin.name }}</div>
+    <div class="flex items-center gap-2 mt-0.5">
+      {% if bin.category %}
+      <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+        style="background:{{ bin.category.color }}22; color:{{ bin.category.color }}">
+        {{ bin.category.name }}
+      </span>
+      {% endif %}
+      {% if bin.location %}
+      <span class="text-xs text-gray-400">{{ bin.location }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-gray-400">{{ bin.items | length }} items</span>
+    <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </div>
+</a>
+{% endfor %}
+</div>
+
+{% endblock %}

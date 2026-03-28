@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ bin.name }} — Bins{% endblock %}
+{% block content %}
+
+<!-- Back + actions -->
+<div class="flex items-center justify-between mb-4">
+  <a href="/" class="flex items-center gap-1 text-gray-400 hover:text-gray-700 text-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back
+  </a>
+  <div class="flex items-center gap-2">
+    <a href="/qr/{{ bin.token }}" class="text-gray-400 hover:text-gray-700 text-sm flex items-center gap-1">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5A2.5 2.5 0 0121.5 13M4 4h4v4H4V4zm12 0h4v4h-4V4zM4 16h4v4H4v-4z"/>
+      </svg>
+      QR Label
+    </a>
+    <a href="/bin/{{ bin.token }}/edit" class="text-gray-400 hover:text-gray-700 text-sm">Edit</a>
+  </div>
+</div>
+
+<!-- Bin header -->
+<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+  <div class="flex items-start justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-gray-900">{{ bin.name }}</h1>
+      {% if bin.category %}
+      <span class="inline-flex items-center gap-1 mt-1 text-xs font-medium px-2 py-0.5 rounded-full"
+        style="background:{{ bin.category.color }}22; color:{{ bin.category.color }}">
+        {{ bin.category.name }}
+      </span>
+      {% endif %}
+      {% if bin.location %}
+      <div class="text-sm text-gray-400 mt-1">📍 {{ bin.location }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% if bin.notes %}
+  <p class="text-sm text-gray-500 mt-2 border-t pt-2">{{ bin.notes }}</p>
+  {% endif %}
+</div>
+
+<!-- Photos -->
+<div id="photos-strip" class="mb-4">
+  {% include "partials/photos_strip.html" %}
+</div>
+
+<!-- Upload photo button -->
+<div class="mb-4">
+  <label class="flex items-center justify-center gap-2 w-full border-2 border-dashed border-gray-200 rounded-xl py-3 text-gray-400 hover:border-indigo-300 hover:text-indigo-500 cursor-pointer transition-colors">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    Add Photo
+    <input type="file" accept="image/*" capture="environment" class="hidden"
+      hx-post="/photo/upload/{{ bin.token }}"
+      hx-target="#photos-strip"
+      hx-swap="innerHTML"
+      hx-encoding="multipart/form-data"
+      name="file"
+      onchange="this.form && this.form.requestSubmit ? this.closest('label').querySelector('form') : htmx.trigger(this, 'change')"
+      hx-trigger="change">
+  </label>
+</div>
+
+<!-- Items -->
+<div class="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-24">
+  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <h2 class="font-semibold text-gray-700">Contents</h2>
+    <span class="text-xs text-gray-400">{{ bin.items | length }} items</span>
+  </div>
+
+  <div id="items-list">
+    {% include "partials/items_list.html" %}
+  </div>
+</div>
+
+<!-- Sticky add item form -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-10">
+  <form hx-post="/item/add/{{ bin.token }}"
+        hx-target="#items-list"
+        hx-swap="innerHTML"
+        hx-on::after-request="this.reset()"
+        class="flex gap-2 max-w-2xl mx-auto">
+    <input type="text" name="name" placeholder="Add an item..." required
+      class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base">
+    <input type="number" name="quantity" value="1" min="1"
+      class="w-16 px-2 py-2.5 rounded-xl border border-gray-200 text-center focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base">
+    <button type="submit"
+      class="bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-indigo-700 text-base">
+      Add
+    </button>
+  </form>
+</div>
+
+{% endblock %}

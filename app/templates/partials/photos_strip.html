@@ -1,0 +1,24 @@
+{% if bin.photos %}
+<div class="flex gap-2 overflow-x-auto pb-1">
+  {% for photo in bin.photos %}
+  <div class="relative flex-shrink-0 group">
+    <img src="/photos/{{ photo.filename }}"
+      class="h-32 w-32 object-cover rounded-xl border border-gray-200 cursor-pointer"
+      onclick="document.getElementById('lightbox-{{ photo.id }}').classList.remove('hidden')">
+    <button
+      hx-post="/photo/{{ photo.id }}/delete"
+      hx-target="#photos-strip"
+      hx-swap="innerHTML"
+      hx-confirm="Remove this photo?"
+      class="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
+      ×
+    </button>
+    <!-- Lightbox -->
+    <div id="lightbox-{{ photo.id }}" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+      onclick="this.classList.add('hidden')">
+      <img src="/photos/{{ photo.filename }}" class="max-w-full max-h-full rounded-xl">
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

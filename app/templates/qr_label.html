@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Label — {{ bin.name }}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, sans-serif; background: white; }
+    .label {
+      width: 3in;
+      padding: 0.25in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      page-break-inside: avoid;
+    }
+    .label img { width: 2in; height: 2in; }
+    .bin-name { font-size: 14pt; font-weight: 700; text-align: center; }
+    .bin-meta { font-size: 9pt; color: #666; text-align: center; }
+    .btn { display: inline-block; margin: 20px; padding: 10px 20px; background: #4f46e5; color: white;
+           text-decoration: none; border-radius: 8px; font-family: -apple-system, sans-serif; cursor: pointer;
+           border: none; font-size: 14px; }
+    @media print { .btn { display: none; } }
+  </style>
+</head>
+<body>
+  <div style="text-align:center">
+    <button class="btn" onclick="window.print()">🖨 Print Label</button>
+  </div>
+  <div class="label">
+    <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code">
+    <div class="bin-name">{{ bin.name }}</div>
+    {% if bin.category %}
+    <div class="bin-meta">{{ bin.category.name }}</div>
+    {% endif %}
+    {% if bin.location %}
+    <div class="bin-meta">📍 {{ bin.location }}</div>
+    {% endif %}
+  </div>
+</body>
+</html>

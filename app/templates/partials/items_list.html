@@ -1,0 +1,11 @@
+{% if bin.items %}
+  {% for item in bin.items %}
+  <div id="item-{{ item.id }}">
+    {% include "partials/item_row.html" %}
+  </div>
+  {% endfor %}
+{% else %}
+<div class="px-4 py-8 text-center text-gray-400 text-sm">
+  No items yet. Add one below.
+</div>
+{% endif %}

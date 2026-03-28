@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Search — Bins{% endblock %}
+{% block content %}
+
+<form action="/search" method="get" class="mb-6">
+  <div class="relative">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search bins and items..." autofocus
+      class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base shadow-sm">
+    <svg class="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+    </svg>
+  </div>
+</form>
+
+{% if q %}
+  {% if results %}
+  <p class="text-sm text-gray-400 mb-4">{{ results | length }} bin{% if results | length != 1 %}s{% endif %} matched</p>
+  {% for r in results %}
+  <a href="/bin/{{ r.bin.token }}" class="block bg-white rounded-2xl border border-gray-200 p-4 mb-3 hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="font-semibold text-gray-800">{{ r.bin.name }}</div>
+        {% if r.bin.category %}
+        <span class="text-xs px-1.5 py-0.5 rounded-full font-medium mt-1 inline-block"
+          style="background:{{ r.bin.category.color }}22; color:{{ r.bin.category.color }}">
+          {{ r.bin.category.name }}
+        </span>
+        {% endif %}
+        {% if r.bin.location %}
+        <div class="text-xs text-gray-400 mt-1">📍 {{ r.bin.location }}</div>
+        {% endif %}
+      </div>
+      <svg class="w-4 h-4 text-gray-300 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </div>
+    {% if r.matched_items %}
+    <div class="mt-2 pt-2 border-t border-gray-50">
+      <div class="text-xs text-gray-400 mb-1">Matching items:</div>
+      {% for item in r.matched_items %}
+      <div class="text-sm text-indigo-700 bg-indigo-50 rounded px-2 py-0.5 inline-block mr-1 mb-1">{{ item.name }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </a>
+  {% endfor %}
+  {% else %}
+  <div class="text-center py-16">
+    <div class="text-4xl mb-3">🔍</div>
+    <p class="text-gray-500">No results for <strong>{{ q }}</strong></p>
+  </div>
+  {% endif %}
+{% endif %}
+
+{% endblock %}

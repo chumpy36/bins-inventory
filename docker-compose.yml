@@ -1,0 +1,12 @@
+services:
+  bins-app:
+    image: bins-inventory:latest
+    container_name: bins-inventory
+    volumes:
+      - /volume1/docker/bins-inventory/data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/bins.db
+      - DATA_DIR=/app/data
+      - PHOTOS_DIR=/app/data/photos
+      - BASE_URL=https://bins.hollandit.work
+    restart: unless-stopped
