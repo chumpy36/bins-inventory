@@ -12,7 +12,7 @@ ENV DATABASE_URL=sqlite:////app/data/bins.db
 ENV STATIC_DIR=/app/app/static
 ENV DATA_DIR=/app/data
 ENV PHOTOS_DIR=/app/data/photos
-ENV BASE_URL=https://bins.hollandit.work
+ENV BASE_URL=https://inventory.hollandit.work
 
 RUN mkdir -p /app/data/photos /app/app/static
 

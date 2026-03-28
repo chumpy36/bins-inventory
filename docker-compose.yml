@@ -8,7 +8,7 @@ services:
       - DATABASE_URL=sqlite:////app/data/bins.db
       - DATA_DIR=/app/data
       - PHOTOS_DIR=/app/data/photos
-      - BASE_URL=https://bins.hollandit.work
+      - BASE_URL=https://inventory.hollandit.work
     restart: unless-stopped
 
   tunnel:
