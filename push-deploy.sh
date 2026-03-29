@@ -27,6 +27,7 @@ ssh "$NAS_HOST" "
   git pull
   sudo /usr/local/bin/docker build -t $IMAGE_NAME .
   sudo /usr/local/bin/docker compose down
+  sudo /usr/local/bin/docker network prune -f
   sudo /usr/local/bin/docker compose up -d
   echo 'Deploy complete!'
 "
