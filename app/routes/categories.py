@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.models import Category
@@ -34,13 +35,23 @@ async def list_categories(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/categories")
 async def create_category(
+    request: Request,
     name: str = Form(...),
     color: str = Form("#6366f1"),
     db: Session = Depends(get_db),
 ):
     cat = Category(name=name.strip(), color=color)
     db.add(cat)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        categories = db.query(Category).order_by(Category.name).all()
+        return templates.TemplateResponse("categories.html", {
+            "request": request,
+            "categories": categories,
+            "error": f'A category named "{name.strip()}" already exists.',
+        }, status_code=422)
     return RedirectResponse("/categories", status_code=303)
 
 
