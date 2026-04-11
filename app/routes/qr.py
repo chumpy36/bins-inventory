@@ -1,6 +1,6 @@
 import io
 import os
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -33,17 +33,28 @@ def make_qr_png_b64(url: str) -> str:
 
 
 @router.get("/{token}", response_class=HTMLResponse)
-async def qr_label(token: str, request: Request, db: Session = Depends(get_db)):
+async def qr_label(token: str, request: Request, db: Session = Depends(get_db), skip: int = Query(default=0, ge=0, le=9), count: int = Query(default=1, ge=1, le=10)):
     b = db.query(Bin).filter(Bin.token == token).first()
     if not b:
         return HTMLResponse("Bin not found", status_code=404)
     url = f"{BASE_URL}/bin/{b.token}"
     qr_b64 = make_qr_png_b64(url)
+    slots = []
+    for i in range(count):
+        n = skip + i
+        row = n // 2
+        col = n % 2
+        top = 0.5 + row * 2          # inches, 0.5in top margin (Avery 8163 spec) + 2in per row
+        left = col * 4.125 + 0.157  # inches, 4mm left offset + 4.125in per col
+        slots.append({"top": top, "left": left})
     return templates.TemplateResponse("qr_label.html", {
         "request": request,
         "bin": b,
         "qr_b64": qr_b64,
         "url": url,
+        "skip": skip,
+        "count": count,
+        "slots": slots,
     })
 
 
