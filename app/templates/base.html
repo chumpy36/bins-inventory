@@ -32,12 +32,29 @@
               d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
           </svg>
         </a>
-        <a href="/bin/new" class="bg-indigo-600 text-white text-sm px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700">
-          + New Bin
-        </a>
+        <!-- Add dropdown -->
+        <div class="relative" id="add-menu-wrapper">
+          <button onclick="document.getElementById('add-menu').classList.toggle('hidden')"
+            class="bg-indigo-600 text-white text-sm px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700 flex items-center gap-1">
+            + New
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="add-menu" class="hidden absolute right-0 top-9 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-20 w-36">
+            <a href="/inventory/new" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">🎸 Gear</a>
+            <a href="/bin/new" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">📦 Bin</a>
+          </div>
+        </div>
         <a href="/inventory" class="text-gray-500 hover:text-gray-800 text-sm">Gear</a>
         <a href="/locations" class="text-gray-500 hover:text-gray-800 text-sm">Locations</a>
         <a href="/categories" class="text-gray-500 hover:text-gray-800 text-sm">Categories</a>
+        <script>
+          document.addEventListener('click', function(e) {
+            var w = document.getElementById('add-menu-wrapper');
+            if (w && !w.contains(e.target)) document.getElementById('add-menu').classList.add('hidden');
+          });
+        </script>
       </div>
     </div>
   </nav>

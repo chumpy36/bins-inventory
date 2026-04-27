@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} — Inventory{% endblock %}
+{% block content %}
+
+<!-- Back + actions -->
+<div class="flex items-center justify-between mb-4">
+  <a href="/inventory" class="flex items-center gap-1 text-gray-400 hover:text-gray-700 text-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back
+  </a>
+  <a href="/inventory/{{ item.token }}/edit" class="text-gray-400 hover:text-gray-700 text-sm">Edit</a>
+</div>
+
+<!-- Header -->
+<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+  <div class="flex items-start gap-3">
+    <span class="text-3xl mt-0.5">{{ item.item_type.icon }}</span>
+    <div class="flex-1 min-w-0">
+      <h1 class="text-xl font-bold text-gray-900 leading-tight">{{ item.name }}</h1>
+      <div class="flex flex-wrap items-center gap-2 mt-1">
+        {% if item.brand %}
+        <span class="text-gray-500 text-sm">{{ item.brand }}</span>
+        {% endif %}
+        {% if item.model %}
+        <span class="text-gray-400 text-sm">{{ item.model }}</span>
+        {% endif %}
+        {% if item.year_produced %}
+        <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{{ item.year_produced }}</span>
+        {% endif %}
+        {% if item.condition %}
+        {% set cond_colors = {"Mint": "bg-green-100 text-green-700", "Excellent": "bg-emerald-100 text-emerald-700", "Good": "bg-blue-100 text-blue-700", "Fair": "bg-amber-100 text-amber-700", "Poor": "bg-red-100 text-red-700"} %}
+        <span class="text-xs px-2 py-0.5 rounded-full font-medium {{ cond_colors.get(item.condition, 'bg-gray-100 text-gray-600') }}">
+          {{ item.condition }}
+        </span>
+        {% endif %}
+        {% if item.sold %}
+        <span class="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full font-medium">Sold</span>
+        {% endif %}
+      </div>
+      {% if item.color %}
+      <div class="text-xs text-gray-400 mt-1">{{ item.color }}</div>
+      {% endif %}
+      {% if item.location %}
+      <div class="text-xs text-gray-400 mt-1">📍 {{ item.location.name }}</div>
+      {% endif %}
+    </div>
+    {% if item.rating %}
+    <div class="text-amber-400 text-sm flex-shrink-0">
+      {% for i in range(item.rating) %}★{% endfor %}{% for i in range(5 - item.rating) %}☆{% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Photos -->
+{% if item.photos %}
+<div class="mb-4">
+  <div id="photos-strip">
+    {% include "partials/inventory_photos_strip.html" %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Financial summary -->
+{% if item.amount_paid or item.current_value %}
+<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+  <div class="grid grid-cols-{% if item.sold and item.sale_price %}3{% else %}2{% endif %} gap-4 text-center">
+    {% if item.amount_paid %}
+    <div>
+      <div class="text-xs text-gray-400 mb-0.5">Paid</div>
+      <div class="font-semibold text-gray-800">${{ "%.0f"|format(item.amount_paid) }}</div>
+    </div>
+    {% endif %}
+    {% if item.current_value %}
+    <div>
+      <div class="text-xs text-gray-400 mb-0.5">Value</div>
+      <div class="font-semibold {% if item.current_value > (item.amount_paid or 0) %}text-green-600{% else %}text-gray-800{% endif %}">
+        ${{ "%.0f"|format(item.current_value) }}
+      </div>
+    </div>
+    {% endif %}
+    {% if item.sold and item.sale_price %}
+    <div>
+      <div class="text-xs text-gray-400 mb-0.5">Sold For</div>
+      <div class="font-semibold text-gray-500">${{ "%.0f"|format(item.sale_price) }}</div>
+    </div>
+    {% endif %}
+  </div>
+  {% if item.acquired_from or item.date_acquired %}
+  <div class="text-xs text-gray-400 text-center mt-2 border-t pt-2">
+    {% if item.date_acquired %}{{ item.date_acquired }}{% endif %}
+    {% if item.acquired_from %} · {{ item.acquired_from }}{% endif %}
+  </div>
+  {% endif %}
+  {% if item.serial_number %}
+  <div class="text-xs text-gray-400 text-center mt-1">S/N: {{ item.serial_number }}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Story -->
+{% if item.story %}
+<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+  <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Story</div>
+  <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ item.story }}</p>
+</div>
+{% endif %}
+
+<!-- Notes -->
+{% if item.notes %}
+<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+  <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Notes</div>
+  <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ item.notes }}</p>
+</div>
+{% endif %}
+
+<!-- Type-specific attributes -->
+{% for section_name, attrs in sections.items() %}
+  {% set section_has_data = namespace(value=false) %}
+  {% for attr in attrs %}
+    {% if attr_map.get(attr.id) %}
+      {% set section_has_data.value = true %}
+    {% endif %}
+  {% endfor %}
+  {% if section_has_data.value %}
+  <div class="bg-white rounded-2xl border border-gray-200 p-4 mb-3">
+    <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{{ section_name }}</div>
+    <div class="space-y-2">
+      {% for attr in attrs %}
+        {% set val = attr_map.get(attr.id) %}
+        {% if val %}
+        <div class="flex gap-3">
+          <span class="text-xs text-gray-400 w-36 flex-shrink-0 pt-0.5">{{ attr.label }}</span>
+          <span class="text-sm text-gray-800 flex-1 {% if attr.field_type == 'textarea' %}whitespace-pre-wrap{% endif %}">
+            {% if attr.field_type == 'boolean' %}
+              {% if val == 'true' %}✓ Yes{% else %}No{% endif %}
+            {% else %}
+              {{ val }}
+            {% endif %}
+          </span>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+{% endfor %}
+
+<div class="h-8"></div>
+
+{% endblock %}

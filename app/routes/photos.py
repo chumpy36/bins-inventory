@@ -8,7 +8,7 @@ from PIL import Image
 import io
 
 from app.database import get_db
-from app.models import Photo, Bin
+from app.models import Photo, Bin, InventoryPhoto, InventoryItem
 
 router = APIRouter(prefix="/photo")
 templates = Jinja2Templates(directory="/app/app/templates")
@@ -64,6 +64,53 @@ async def upload_photo(
     return templates.TemplateResponse("partials/photos_strip.html", {
         "request": request,
         "bin": b,
+    })
+
+
+@router.post("/upload/item/{token}")
+async def upload_inventory_photo(
+    token: str,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    item = db.query(InventoryItem).filter(InventoryItem.token == token).first()
+    if not item:
+        return HTMLResponse("Item not found", status_code=404)
+
+    contents = await file.read()
+    filename = f"{uuid.uuid4().hex}.jpg"
+    os.makedirs(PHOTOS_DIR, exist_ok=True)
+    resize_and_save(contents, filename)
+
+    max_order = max((p.sort_order for p in item.photos), default=-1)
+    photo = InventoryPhoto(inventory_item_id=item.id, filename=filename, sort_order=max_order + 1)
+    db.add(photo)
+    db.commit()
+    db.refresh(item)
+
+    return templates.TemplateResponse("partials/inventory_photos_strip.html", {
+        "request": request,
+        "item": item,
+    })
+
+
+@router.post("/item/{photo_id}/delete")
+async def delete_inventory_photo(photo_id: int, request: Request, db: Session = Depends(get_db)):
+    photo = db.query(InventoryPhoto).filter(InventoryPhoto.id == photo_id).first()
+    if not photo:
+        return HTMLResponse("", status_code=404)
+    item_ref = photo.inventory_item
+    filepath = os.path.join(PHOTOS_DIR, photo.filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    db.delete(photo)
+    db.commit()
+    db.refresh(item_ref)
+
+    return templates.TemplateResponse("partials/inventory_photos_strip.html", {
+        "request": request,
+        "item": item_ref,
     })
 
 
