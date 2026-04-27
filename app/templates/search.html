@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Search — Bins{% endblock %}
+{% block title %}Search{% endblock %}
 {% block content %}
 
 <form action="/search" method="get" class="mb-6">
   <div class="relative">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search bins and items..." autofocus
+    <input type="text" name="q" value="{{ q }}" placeholder="Search everything..." autofocus
       class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base shadow-sm">
     <svg class="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -14,43 +14,92 @@
 </form>
 
 {% if q %}
-  {% if results %}
-  <p class="text-sm text-gray-400 mb-4">{{ results | length }} bin{% if results | length != 1 %}s{% endif %} matched</p>
-  {% for r in results %}
-  <a href="/bin/{{ r.bin.token }}" class="block bg-white rounded-2xl border border-gray-200 p-4 mb-3 hover:border-indigo-300 hover:shadow-sm transition-all">
-    <div class="flex items-start justify-between">
-      <div>
-        <div class="font-semibold text-gray-800">{{ r.bin.name }}</div>
-        {% if r.bin.category %}
-        <span class="text-xs px-1.5 py-0.5 rounded-full font-medium mt-1 inline-block"
-          style="background:{{ r.bin.category.color }}22; color:{{ r.bin.category.color }}">
-          {{ r.bin.category.name }}
-        </span>
+  {% if total %}
+  <p class="text-sm text-gray-400 mb-4">{{ total }} result{% if total != 1 %}s{% endif %} for <strong class="text-gray-600">{{ q }}</strong></p>
+
+  <!-- Gear results -->
+  {% for r in gear_results %}
+  {% set g = r.item %}
+  <a href="/inventory/{{ g.token }}" class="block bg-white rounded-2xl border border-gray-200 p-4 mb-3 hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">🎸 {{ g.item_type.name }}</span>
+          {% if g.sold %}
+          <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Sold</span>
+          {% endif %}
+        </div>
+        <div class="font-semibold text-gray-800 mt-1">{{ g.name }}</div>
+        {% if g.brand or g.model %}
+        <div class="text-sm text-gray-500">{{ [g.brand, g.model] | select | join(" ") }}</div>
         {% endif %}
-        {% if r.bin.location %}
-        <div class="text-xs text-gray-400 mt-1">📍 {{ r.bin.location }}</div>
+        {% if g.location %}
+        <div class="text-xs text-gray-400 mt-1">📍 {{ g.location.name }}</div>
+        {% endif %}
+        {% if r.matched_attrs %}
+        <div class="mt-2 pt-2 border-t border-gray-50 flex flex-wrap gap-1">
+          {% for attr in r.matched_attrs %}
+          <span class="text-xs bg-indigo-50 text-indigo-700 rounded px-2 py-0.5">{{ attr.attribute_def.label }}: {{ attr.value }}</span>
+          {% endfor %}
+        </div>
         {% endif %}
       </div>
-      <svg class="w-4 h-4 text-gray-300 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
       </svg>
     </div>
-    {% if r.matched_items %}
-    <div class="mt-2 pt-2 border-t border-gray-50">
-      <div class="text-xs text-gray-400 mb-1">Matching items:</div>
-      {% for item in r.matched_items %}
-      <div class="text-sm text-indigo-700 bg-indigo-50 rounded px-2 py-0.5 inline-block mr-1 mb-1">{{ item.name }}</div>
-      {% endfor %}
-    </div>
-    {% endif %}
   </a>
   {% endfor %}
+
+  <!-- Bin results -->
+  {% for r in bin_results %}
+  {% set b = r.bin %}
+  <a href="/bin/{{ b.token }}" class="block bg-white rounded-2xl border border-gray-200 p-4 mb-3 hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">📦 Bin</span>
+          {% if b.category %}
+          <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
+            style="background:{{ b.category.color }}22; color:{{ b.category.color }}">
+            {{ b.category.name }}
+          </span>
+          {% endif %}
+        </div>
+        <div class="font-semibold text-gray-800 mt-1">{{ b.name }}</div>
+        {% if b.display_location %}
+        <div class="text-xs text-gray-400 mt-0.5">📍 {{ b.display_location }}</div>
+        {% endif %}
+        {% if r.matched_items %}
+        <div class="mt-2 pt-2 border-t border-gray-50 flex flex-wrap gap-1">
+          {% for item in r.matched_items %}
+          <span class="text-xs bg-amber-50 text-amber-700 rounded px-2 py-0.5">{{ item.name }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <svg class="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </div>
+  </a>
+  {% endfor %}
+
   {% else %}
   <div class="text-center py-16">
     <div class="text-4xl mb-3">🔍</div>
     <p class="text-gray-500">No results for <strong>{{ q }}</strong></p>
+    <p class="text-sm text-gray-400 mt-1">Try a brand, model, serial number, or item name</p>
   </div>
   {% endif %}
+{% else %}
+<div class="text-center py-16 text-gray-400">
+  <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+      d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+  </svg>
+  <p>Search bins, gear, brands, serials, locations…</p>
+</div>
 {% endif %}
 
 {% endblock %}
