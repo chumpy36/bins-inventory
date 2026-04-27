@@ -56,3 +56,6 @@ def init_db():
     # Add new columns and seed data (idempotent)
     from app.migrations.migration_001 import run as run_001
     run_001()
+
+    from app.migrations.migration_002 import run as run_002
+    run_002()

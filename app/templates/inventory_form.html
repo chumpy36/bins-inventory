@@ -242,6 +242,17 @@
         <input type="number" name="attr_{{ attr.key }}" value="{{ current_val }}" step="0.01"
           class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base">
 
+        {% elif attr.field_type == 'datalist' %}
+        <input type="text" name="attr_{{ attr.key }}" value="{{ current_val }}"
+          list="dl_{{ attr.id }}"
+          autocomplete="off"
+          class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base">
+        <datalist id="dl_{{ attr.id }}">
+          {% for opt in attr_options.get(attr.id, []) %}
+          <option value="{{ opt }}">
+          {% endfor %}
+        </datalist>
+
         {% else %}
         <input type="text" name="attr_{{ attr.key }}" value="{{ current_val }}"
           class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base">

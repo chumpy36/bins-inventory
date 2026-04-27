@@ -29,11 +29,11 @@ def _sections(attr_defs):
 
 
 def _attr_options(sections):
-    """Return {attr_def_id: [str, ...]} for select-type attrs."""
+    """Return {attr_def_id: [str, ...]} for select and datalist attrs."""
     opts = {}
     for attrs in sections.values():
         for a in attrs:
-            if a.field_type == "select" and a.options:
+            if a.field_type in ("select", "datalist") and a.options:
                 try:
                     opts[a.id] = json.loads(a.options)
                 except Exception:
