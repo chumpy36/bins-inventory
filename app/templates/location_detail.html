@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ loc.name }} — Inventory{% endblock %}
+{% block content %}
+
+<div class="flex items-start justify-between mb-6 gap-3">
+  <div>
+    <div class="text-sm text-gray-400 mb-1">
+      <a href="/locations" class="hover:text-indigo-500">Locations</a>
+      {% if loc.parent %} › <a href="/locations/{{ loc.parent.id }}" class="hover:text-indigo-500">{{ loc.parent.name }}</a>{% endif %}
+    </div>
+    <h1 class="text-2xl font-bold text-gray-900">{{ loc.name }}</h1>
+    <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 mt-1 inline-block">
+      {{ kind_labels.get(loc.kind, loc.kind) }}
+    </span>
+    {% if loc.notes %}
+    <p class="text-sm text-gray-500 mt-2">{{ loc.notes }}</p>
+    {% endif %}
+  </div>
+  <div class="flex flex-col items-center gap-1 flex-shrink-0">
+    <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR" class="w-20 h-20 rounded-lg border border-gray-200">
+    <a href="/locations/{{ loc.id }}/label"
+      class="text-xs text-indigo-500 hover:text-indigo-700">Print label</a>
+  </div>
+</div>
+
+<!-- Sub-locations -->
+{% if children %}
+<h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">Sub-locations</h2>
+<div class="grid grid-cols-1 gap-2 mb-6">
+  {% for child in children %}
+  <a href="/locations/{{ child.id }}"
+    class="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div>
+      <div class="font-medium text-gray-800">{{ child.name }}</div>
+      <div class="text-xs text-gray-400">{{ child.bins | length }} bins · {{ child.inventory_items | length }} gear</div>
+    </div>
+    <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Gear -->
+{% if loc.inventory_items %}
+<h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">Gear</h2>
+<div class="grid grid-cols-1 gap-2 mb-6">
+  {% for item in loc.inventory_items %}
+  <a href="/inventory/{{ item.token }}"
+    class="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div>
+      <div class="text-xs text-indigo-500 mb-0.5">🎸 {{ item.item_type.name }}</div>
+      <div class="font-medium text-gray-800">{{ item.name }}</div>
+      {% if item.brand or item.model %}
+      <div class="text-xs text-gray-400">{{ [item.brand, item.model] | select | join(" ") }}</div>
+      {% endif %}
+    </div>
+    <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Bins -->
+{% if loc.bins %}
+<h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">Storage Bins</h2>
+<div class="grid grid-cols-1 gap-2 mb-6">
+  {% for bin in loc.bins %}
+  <a href="/bin/{{ bin.token }}"
+    class="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div>
+      {% if bin.category %}
+      <div class="text-xs mb-0.5" style="color:{{ bin.category.color }}">{{ bin.category.name }}</div>
+      {% endif %}
+      <div class="font-medium text-gray-800">{{ bin.name }}</div>
+      <div class="text-xs text-gray-400">{{ bin.items | length }} items</div>
+    </div>
+    <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not loc.inventory_items and not loc.bins and not children %}
+<div class="text-center py-16 text-gray-400">
+  <p class="text-sm">Nothing stored here yet.</p>
+  <p class="text-xs mt-1">Assign bins or gear to this location to see them here.</p>
+</div>
+{% endif %}
+
+{% endblock %}

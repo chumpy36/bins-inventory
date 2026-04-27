@@ -8,22 +8,24 @@
 
 {% set kind_colors = {
   "room":  "bg-blue-100 text-blue-700",
-  "bin":   "bg-amber-100 text-amber-700",
   "shelf": "bg-green-100 text-green-700",
   "rack":  "bg-purple-100 text-purple-700",
   "case":  "bg-pink-100 text-pink-700",
   "other": "bg-gray-100 text-gray-600",
 } %}
 
-{% for loc in locations %}
-<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-3">
+{% macro loc_card(loc, indent) %}
+<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-2 {% if indent %}ml-6 border-l-4 border-l-gray-100{% endif %}">
   <div class="flex items-start gap-3">
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="font-medium text-gray-800">{{ loc.name }}</span>
+        <a href="/locations/{{ loc.id }}" class="font-medium text-gray-800 hover:text-indigo-600">{{ loc.name }}</a>
         <span class="text-xs px-2 py-0.5 rounded-full font-medium {{ kind_colors.get(loc.kind, 'bg-gray-100 text-gray-600') }}">
           {{ kind_labels.get(loc.kind, loc.kind) }}
         </span>
+        {% if loc.parent %}
+        <span class="text-xs text-gray-400">in {{ loc.parent.name }}</span>
+        {% endif %}
       </div>
       <div class="text-xs text-gray-400 mt-1">
         {% set bin_count = loc.bins | length %}
@@ -31,7 +33,7 @@
         {% if bin_count or item_count %}
           {% if bin_count %}{{ bin_count }} bin{{ 's' if bin_count != 1 }}{% endif %}
           {% if bin_count and item_count %} · {% endif %}
-          {% if item_count %}{{ item_count }} item{{ 's' if item_count != 1 }}{% endif %}
+          {% if item_count %}{{ item_count }} gear item{{ 's' if item_count != 1 }}{% endif %}
         {% else %}
           Not used yet
         {% endif %}
@@ -41,61 +43,93 @@
       {% endif %}
     </div>
 
-    <!-- Edit toggle -->
-    <details class="relative">
-      <summary class="list-none cursor-pointer text-gray-400 hover:text-gray-700 p-1">
+    <div class="flex items-center gap-2">
+      <a href="/locations/{{ loc.id }}/label" title="Print label"
+        class="text-gray-300 hover:text-indigo-500 p-1">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
         </svg>
-      </summary>
-      <div class="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-2xl shadow-lg p-4 w-64">
-        <form method="post" action="/locations/{{ loc.id }}/edit" class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
-            <input type="text" name="name" required value="{{ loc.name }}"
-              class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Kind</label>
-            <select name="kind"
-              class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm bg-white">
-              {% for k, label in kind_labels.items() %}
-              <option value="{{ k }}" {% if loc.kind == k %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-            <input type="text" name="notes" value="{{ loc.notes or '' }}" placeholder="Optional"
-              class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
-          </div>
-          <button type="submit"
-            class="w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-indigo-700">
-            Save
-          </button>
-        </form>
-        <form method="post" action="/locations/{{ loc.id }}/delete" class="mt-2"
-          onsubmit="return confirm('Remove {{ loc.name }}? Bins and items will be unassigned.')">
-          <button type="submit"
-            class="w-full text-red-400 hover:text-red-600 text-sm py-1">
-            Delete location
-          </button>
-        </form>
-      </div>
-    </details>
+      </a>
+      <!-- Edit toggle -->
+      <details class="relative">
+        <summary class="list-none cursor-pointer text-gray-400 hover:text-gray-700 p-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </summary>
+        <div class="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-2xl shadow-lg p-4 w-64">
+          <form method="post" action="/locations/{{ loc.id }}/edit" class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
+              <input type="text" name="name" required value="{{ loc.name }}"
+                class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Kind</label>
+              <select name="kind"
+                class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm bg-white">
+                {% for k, label in kind_labels.items() %}
+                <option value="{{ k }}" {% if loc.kind == k %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Parent location</label>
+              <select name="parent_id"
+                class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm bg-white">
+                <option value="">— None —</option>
+                {% for l in locations %}
+                {% if l.id != loc.id %}
+                <option value="{{ l.id }}" {% if loc.parent_id == l.id %}selected{% endif %}>{{ l.name }}</option>
+                {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+              <input type="text" name="notes" value="{{ loc.notes or '' }}" placeholder="Optional"
+                class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm">
+            </div>
+            <button type="submit"
+              class="w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-indigo-700">
+              Save
+            </button>
+          </form>
+          <form method="post" action="/locations/{{ loc.id }}/delete" class="mt-2"
+            onsubmit="return confirm('Remove {{ loc.name }}? Bins and items will be unassigned.')">
+            <button type="submit"
+              class="w-full text-red-400 hover:text-red-600 text-sm py-1">
+              Delete location
+            </button>
+          </form>
+        </div>
+      </details>
+    </div>
   </div>
 </div>
+{% endmacro %}
+
+{% if top_locations %}
+  {% for loc in top_locations %}
+    {{ loc_card(loc, false) }}
+    {% if by_parent.get(loc.id) %}
+      {% for child in by_parent[loc.id] %}
+        {{ loc_card(child, true) }}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
 {% else %}
 <p class="text-gray-400 text-sm mb-4">No locations yet.</p>
-{% endfor %}
+{% endif %}
 
 <!-- Add new location -->
 <div class="bg-white rounded-2xl border border-gray-200 p-5 mt-6">
   <h2 class="font-semibold text-gray-700 mb-4">Add Location</h2>
   <form method="post" action="/locations" class="space-y-3">
     <div>
-      <input type="text" name="name" required placeholder="e.g. Garage, Music Room, Gear Closet"
+      <input type="text" name="name" required placeholder="e.g. Garage, North Wall Shelves"
         class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base">
     </div>
     <div>
@@ -103,6 +137,15 @@
         class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base bg-white">
         {% for k, label in kind_labels.items() %}
         <option value="{{ k }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <select name="parent_id"
+        class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base bg-white">
+        <option value="">— No parent —</option>
+        {% for loc in locations %}
+        <option value="{{ loc.id }}">{{ loc.name }}</option>
         {% endfor %}
       </select>
     </div>

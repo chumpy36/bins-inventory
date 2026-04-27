@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Label — {{ loc.name }}</title>
+  <style>
+    @page { margin: 0; size: 4in 2in; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 4in; height: 2in;
+      display: flex; align-items: center;
+      font-family: -apple-system, sans-serif;
+      padding: 0.2in;
+      gap: 0.2in;
+    }
+    img { width: 1.5in; height: 1.5in; flex-shrink: 0; }
+    .info { flex: 1; min-width: 0; }
+    .label-type { font-size: 8pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2pt; }
+    .label-name { font-size: 16pt; font-weight: 700; color: #1f2937; word-break: break-word; line-height: 1.2; }
+    .label-parent { font-size: 9pt; color: #9ca3af; margin-top: 4pt; }
+    .label-hint { font-size: 7pt; color: #d1d5db; margin-top: 8pt; }
+    @media screen {
+      body { border: 1px dashed #ccc; margin: 1in auto; }
+      .print-btn {
+        display: block; position: fixed; bottom: 1rem; right: 1rem;
+        background: #4f46e5; color: white; border: none; padding: 0.5rem 1rem;
+        border-radius: 0.5rem; cursor: pointer; font-size: 14px;
+      }
+    }
+    @media print { .print-btn { display: none; } }
+  </style>
+</head>
+<body>
+  <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR">
+  <div class="info">
+    <div class="label-type">Location</div>
+    <div class="label-name">{{ loc.name }}</div>
+    {% if loc.parent %}
+    <div class="label-parent">{{ loc.parent.name }}</div>
+    {% endif %}
+    <div class="label-hint">Scan to see what's stored here</div>
+  </div>
+  <button class="print-btn" onclick="window.print()">Print</button>
+</body>
+</html>
