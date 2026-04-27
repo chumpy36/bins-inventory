@@ -59,3 +59,6 @@ def init_db():
 
     from app.migrations.migration_002 import run as run_002
     run_002()
+
+    from app.migrations.migration_003 import run as run_003
+    run_003()
