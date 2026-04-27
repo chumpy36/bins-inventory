@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Bin Inventory{% endblock %}</title>
+  <title>{% block title %}Home Inventory{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
@@ -21,9 +21,9 @@
       <a href="/" class="text-lg font-bold text-gray-800 flex items-center gap-2">
         <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
         </svg>
-        Bins
+        Inventory
       </a>
       <div class="flex items-center gap-3">
         <a href="/search" class="text-gray-500 hover:text-gray-800">
@@ -35,7 +35,8 @@
         <a href="/bin/new" class="bg-indigo-600 text-white text-sm px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700">
           + New Bin
         </a>
-        <a href="/bin/s/all" class="text-gray-500 hover:text-gray-800 text-sm">All</a>
+        <a href="/inventory" class="text-gray-500 hover:text-gray-800 text-sm">Gear</a>
+        <a href="/locations" class="text-gray-500 hover:text-gray-800 text-sm">Locations</a>
         <a href="/categories" class="text-gray-500 hover:text-gray-800 text-sm">Categories</a>
       </div>
     </div>

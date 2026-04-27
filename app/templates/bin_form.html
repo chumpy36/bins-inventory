@@ -41,10 +41,25 @@
   </div>
 
   <div>
-    <label class="block text-sm font-medium text-gray-700 mb-1">Location <span class="text-gray-400 font-normal">(optional)</span></label>
-    <input type="text" name="location" value="{{ bin.location or '' if bin else '' }}"
-      placeholder="e.g. Shed shelf 2, Garage left wall"
-      class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base">
+    <div class="flex items-center justify-between mb-1">
+      <label class="block text-sm font-medium text-gray-700">Location <span class="text-gray-400 font-normal">(optional)</span></label>
+      <a href="/locations" class="text-xs text-indigo-500 hover:text-indigo-700">
+        {% if locations %}Manage{% else %}Add locations{% endif %}
+      </a>
+    </div>
+    <select name="location_id"
+      class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base bg-white">
+      <option value="">— None —</option>
+      {% for loc in locations %}
+      <option value="{{ loc.id }}" {% if bin and bin.location_id == loc.id %}selected{% endif %}>{{ loc.name }}</option>
+      {% endfor %}
+    </select>
+    {% if bin and bin.location and not bin.location_id %}
+    <p class="text-xs text-amber-600 mt-1">Legacy location: "{{ bin.location }}" — select from the list above to upgrade it.</p>
+    {% endif %}
+    {% if not locations %}
+    <p class="text-xs text-gray-400 mt-1">No locations yet. <a href="/locations" class="text-indigo-500 hover:text-indigo-700">Add one</a> or leave blank.</p>
+    {% endif %}
   </div>
 
   <div>

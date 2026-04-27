@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
-from app.models import Bin, Category
+from app.models import Bin, Category, Location
 
 router = APIRouter(prefix="/bin")
 templates = Jinja2Templates(directory="/app/app/templates")
@@ -14,9 +14,11 @@ templates = Jinja2Templates(directory="/app/app/templates")
 @router.get("/new", response_class=HTMLResponse)
 async def new_bin_form(request: Request, db: Session = Depends(get_db)):
     categories = db.query(Category).order_by(Category.name).all()
+    locations = db.query(Location).order_by(Location.name).all()
     return templates.TemplateResponse("bin_form.html", {
         "request": request,
         "categories": categories,
+        "locations": locations,
         "bin": None,
     })
 
@@ -25,14 +27,14 @@ async def new_bin_form(request: Request, db: Session = Depends(get_db)):
 async def create_bin(
     name: str = Form(...),
     category_id: Optional[int] = Form(None),
-    location: Optional[str] = Form(None),
+    location_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
     b = Bin(
         name=name.strip(),
         category_id=category_id or None,
-        location=location.strip() if location else None,
+        location_id=location_id or None,
         notes=notes.strip() if notes else None,
     )
     db.add(b)
@@ -58,10 +60,12 @@ async def edit_bin_form(token: str, request: Request, db: Session = Depends(get_
     if not b:
         return HTMLResponse("Bin not found", status_code=404)
     categories = db.query(Category).order_by(Category.name).all()
+    locations = db.query(Location).order_by(Location.name).all()
     return templates.TemplateResponse("bin_form.html", {
         "request": request,
         "bin": b,
         "categories": categories,
+        "locations": locations,
     })
 
 
@@ -70,7 +74,7 @@ async def edit_bin(
     token: str,
     name: str = Form(...),
     category_id: Optional[int] = Form(None),
-    location: Optional[str] = Form(None),
+    location_id: Optional[int] = Form(None),
     notes: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
@@ -79,7 +83,9 @@ async def edit_bin(
         return HTMLResponse("Bin not found", status_code=404)
     b.name = name.strip()
     b.category_id = category_id or None
-    b.location = location.strip() if location else None
+    b.location_id = location_id or None
+    if location_id:
+        b.location = None  # clear legacy text once structured location is set
     b.notes = notes.strip() if notes else None
     db.commit()
     return RedirectResponse(f"/bin/{token}", status_code=303)
