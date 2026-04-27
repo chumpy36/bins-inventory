@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Financials — Gear{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <a href="/inventory" class="text-sm text-gray-400 hover:text-gray-600">← Gear</a>
+    <h1 class="text-xl font-bold text-gray-900 mt-1">Financials</h1>
+  </div>
+</div>
+
+{% macro money(val) %}${{ "%.0f"|format(val) }}{% endmacro %}
+{% macro gain_badge(gain) %}
+  {% if gain > 0 %}
+  <span class="text-green-600 font-medium">+{{ money(gain) }}</span>
+  {% elif gain < 0 %}
+  <span class="text-red-500 font-medium">{{ money(gain) }}</span>
+  {% else %}
+  <span class="text-gray-400">—</span>
+  {% endif %}
+{% endmacro %}
+
+<!-- Summary cards -->
+<div class="grid grid-cols-2 gap-3 mb-8">
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="text-xs text-gray-400 mb-1">Collection value</div>
+    <div class="text-2xl font-bold text-indigo-600">{{ money(active_value) }}</div>
+    <div class="text-xs text-gray-400 mt-1">{{ active | length }} item{{ 's' if active | length != 1 }}</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="text-xs text-gray-400 mb-1">Total paid (active)</div>
+    <div class="text-2xl font-bold text-gray-700">{{ money(active_paid) }}</div>
+    <div class="text-xs mt-1">{{ gain_badge(unrealized_gain) }} <span class="text-gray-400">unrealized</span></div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="text-xs text-gray-400 mb-1">Sold proceeds</div>
+    <div class="text-2xl font-bold text-gray-700">{{ money(sold_proceeds) }}</div>
+    <div class="text-xs text-gray-400 mt-1">{{ sold | length }} item{{ 's' if sold | length != 1 }} sold</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4">
+    <div class="text-xs text-gray-400 mb-1">Realized gain</div>
+    <div class="text-2xl font-bold {% if realized_gain >= 0 %}text-green-600{% else %}text-red-500{% endif %}">
+      {% if realized_gain >= 0 %}+{% endif %}{{ money(realized_gain) }}
+    </div>
+    <div class="text-xs text-gray-400 mt-1">vs {{ money(sold_paid) }} paid</div>
+  </div>
+</div>
+
+<!-- Active collection -->
+{% if active %}
+<h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">Active Collection</h2>
+<div class="space-y-2 mb-8">
+  {% for item in active %}
+  {% set gain = (item.current_value or 0) - (item.amount_paid or 0) %}
+  <a href="/inventory/{{ item.token }}"
+    class="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3 hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div class="text-xl flex-shrink-0">{{ item.item_type.icon }}</div>
+    <div class="flex-1 min-w-0">
+      <div class="font-medium text-gray-800 truncate">{{ item.name }}</div>
+      <div class="text-xs text-gray-400 truncate">
+        {% if item.brand %}{{ item.brand }}{% endif %}
+        {% if item.model %} {{ item.model }}{% endif %}
+      </div>
+    </div>
+    <div class="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
+      {% if item.current_value %}
+      <span class="text-sm font-medium text-gray-700">{{ money(item.current_value) }}</span>
+      {% else %}
+      <span class="text-xs text-gray-300">no value</span>
+      {% endif %}
+      {% if item.amount_paid %}
+      <span class="text-xs text-gray-400">pd {{ money(item.amount_paid) }}</span>
+      {% endif %}
+      {% if item.current_value and item.amount_paid %}
+      <span class="text-xs {% if gain >= 0 %}text-green-500{% else %}text-red-400{% endif %}">
+        {% if gain >= 0 %}+{% endif %}{{ money(gain) }}
+      </span>
+      {% endif %}
+    </div>
+    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Sold items -->
+{% if sold %}
+<h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-3">Sold</h2>
+<div class="space-y-2">
+  {% for item in sold %}
+  {% set gain = (item.sale_price or 0) - (item.amount_paid or 0) %}
+  <a href="/inventory/{{ item.token }}"
+    class="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3 hover:border-indigo-300 hover:shadow-sm transition-all opacity-75">
+    <div class="text-xl flex-shrink-0">{{ item.item_type.icon }}</div>
+    <div class="flex-1 min-w-0">
+      <div class="font-medium text-gray-600 truncate">{{ item.name }}</div>
+      <div class="text-xs text-gray-400 truncate">
+        {% if item.date_sold %}{{ item.date_sold }} · {% endif %}
+        {% if item.brand %}{{ item.brand }}{% endif %}
+        {% if item.model %} {{ item.model }}{% endif %}
+      </div>
+    </div>
+    <div class="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
+      {% if item.sale_price %}
+      <span class="text-sm font-medium text-gray-600">{{ money(item.sale_price) }}</span>
+      {% endif %}
+      {% if item.amount_paid %}
+      <span class="text-xs text-gray-400">pd {{ money(item.amount_paid) }}</span>
+      {% endif %}
+      {% if item.sale_price and item.amount_paid %}
+      <span class="text-xs {% if gain >= 0 %}text-green-500{% else %}text-red-400{% endif %}">
+        {% if gain >= 0 %}+{% endif %}{{ money(gain) }}
+      </span>
+      {% endif %}
+    </div>
+    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not active and not sold %}
+<div class="text-center py-16 text-gray-400 text-sm">
+  No financial data yet — add amounts paid and current values to gear items.
+</div>
+{% endif %}
+
+{% endblock %}

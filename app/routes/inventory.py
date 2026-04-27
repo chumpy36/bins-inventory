@@ -140,6 +140,36 @@ async def inventory_list(request: Request, db: Session = Depends(get_db)):
     })
 
 
+# ── Financials ────────────────────────────────────────────────────────────────
+
+@router.get("/financials", response_class=HTMLResponse)
+async def financials(request: Request, db: Session = Depends(get_db)):
+    all_items = db.query(InventoryItem).order_by(InventoryItem.name).all()
+
+    active = [i for i in all_items if not i.sold]
+    sold = [i for i in all_items if i.sold]
+
+    active_value = sum(i.current_value or 0 for i in active)
+    active_paid = sum(i.amount_paid or 0 for i in active)
+    sold_proceeds = sum(i.sale_price or 0 for i in sold)
+    sold_paid = sum(i.amount_paid or 0 for i in sold)
+
+    active_sorted = sorted(active, key=lambda i: i.current_value or 0, reverse=True)
+    sold_sorted = sorted(sold, key=lambda i: i.date_sold or "", reverse=True)
+
+    return templates.TemplateResponse("inventory_financials.html", {
+        "request": request,
+        "active": active_sorted,
+        "sold": sold_sorted,
+        "active_value": active_value,
+        "active_paid": active_paid,
+        "unrealized_gain": active_value - active_paid,
+        "sold_proceeds": sold_proceeds,
+        "sold_paid": sold_paid,
+        "realized_gain": sold_proceeds - sold_paid,
+    })
+
+
 # ── New ───────────────────────────────────────────────────────────────────────
 
 @router.get("/new", response_class=HTMLResponse)
