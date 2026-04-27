@@ -1,9 +1,12 @@
+import io
+import base64
 import json
 import os
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+import qrcode
 
 from app.database import get_db
 from app.models import (
@@ -179,6 +182,48 @@ async def create_item(type_slug: str, request: Request, db: Session = Depends(ge
 
     db.commit()
     return RedirectResponse(f"/inventory/{item.token}", status_code=303)
+
+
+# ── QR Label ──────────────────────────────────────────────────────────────────
+
+BASE_URL = os.getenv("BASE_URL", "https://inventory.hollandit.work")
+
+
+def _make_qr_b64(url: str) -> str:
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=8, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+@router.get("/{token}/label", response_class=HTMLResponse)
+async def item_label(
+    token: str, request: Request, db: Session = Depends(get_db),
+    skip: int = Query(default=0, ge=0, le=9),
+    count: int = Query(default=1, ge=1, le=10),
+):
+    item = db.query(InventoryItem).filter(InventoryItem.token == token).first()
+    if not item:
+        return HTMLResponse("Item not found", status_code=404)
+    url = f"{BASE_URL}/inventory/{item.token}"
+    qr_b64 = _make_qr_b64(url)
+    slots = []
+    for i in range(count):
+        n = skip + i
+        row = n // 2
+        col = n % 2
+        top = 0.5 + row * 2
+        left = col * 4.125 + 0.157
+        slots.append({"top": top, "left": left})
+    return templates.TemplateResponse("inventory_label.html", {
+        "request": request,
+        "item": item,
+        "qr_b64": qr_b64,
+        "slots": slots,
+    })
 
 
 # ── Detail ────────────────────────────────────────────────────────────────────
