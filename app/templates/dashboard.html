@@ -2,6 +2,28 @@
 {% block title %}Bin Inventory{% endblock %}
 {% block content %}
 
+<!-- Stats strip -->
+<div class="grid grid-cols-2 gap-3 mb-6">
+  <a href="/inventory" class="bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div class="text-2xl font-bold text-indigo-600">{{ stats.gear_count }}</div>
+    <div class="text-xs text-gray-500 mt-0.5">Gear items
+      {% if stats.gear_by_type %}
+      <span class="text-gray-400">
+        ({% for name, count in stats.gear_by_type %}{{ count }} {{ name }}{% if not loop.last %}, {% endif %}{% endfor %})
+      </span>
+      {% endif %}
+    </div>
+    {% if stats.gear_value %}
+    <div class="text-sm font-medium text-gray-700 mt-1">${{ "%.0f"|format(stats.gear_value) }} est. value</div>
+    {% endif %}
+  </a>
+  <a href="/" class="bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all">
+    <div class="text-2xl font-bold text-indigo-600">{{ stats.bin_count }}</div>
+    <div class="text-xs text-gray-500 mt-0.5">Storage bins</div>
+    <div class="text-sm font-medium text-gray-700 mt-1">{{ stats.item_count }} items stored</div>
+  </a>
+</div>
+
 <!-- Search bar -->
 <form action="/search" method="get" class="mb-6">
   <div class="relative">
