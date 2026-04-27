@@ -49,8 +49,11 @@ STRING_TUNINGS = [
 
 SCALE_LENGTHS = ['24.75"', '25"', '25.5"', '26.5"', '27"', '28"', '30"', '34"']
 
+CASE_COVER_OPTIONS = ["HSC", "OSC", "Gig Bag", "None"]
+
 # (key, datalist_options) — only applied to 'text' typed rows
 DATALIST_FIELDS = [
+    ("case_cover",             CASE_COVER_OPTIONS),
     ("neck_pickup_type",       PICKUP_TYPES),
     ("mid_pickup_type",        PICKUP_TYPES),
     ("bridge_pickup_type",     PICKUP_TYPES),
