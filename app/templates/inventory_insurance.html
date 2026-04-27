@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Personal Property Insurance Inventory</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Georgia, serif; color: #1a1a1a; background: white; font-size: 11pt; }
+
+    @media print {
+      @page { size: letter portrait; margin: 0.75in; }
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+      .item-card { page-break-inside: avoid; }
+    }
+    @media screen {
+      body { max-width: 8.5in; margin: 0.5in auto; padding: 0.5in; background: #f5f5f5; }
+      .page { background: white; padding: 0.75in; margin-bottom: 1rem; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+    }
+
+    /* Cover */
+    .cover { border-bottom: 3px solid #1a1a1a; padding-bottom: 1.5rem; margin-bottom: 2rem; }
+    .cover h1 { font-size: 22pt; font-weight: bold; letter-spacing: -0.02em; }
+    .cover .subtitle { font-size: 12pt; color: #555; margin-top: 0.25rem; font-style: italic; }
+    .cover .meta { margin-top: 1.5rem; font-size: 10pt; color: #555; display: flex; gap: 2rem; }
+    .cover .meta span { display: flex; flex-direction: column; }
+    .cover .meta strong { font-size: 11pt; color: #1a1a1a; }
+
+    /* Summary table */
+    .summary { width: 100%; border-collapse: collapse; margin-bottom: 2rem; font-size: 10pt; }
+    .summary th { text-align: left; padding: 6px 10px; background: #f0f0f0; border: 1px solid #ddd; font-family: -apple-system, sans-serif; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary td { padding: 6px 10px; border: 1px solid #ddd; }
+    .summary tr:nth-child(even) td { background: #fafafa; }
+    .summary tfoot td { font-weight: bold; background: #f0f0f0; }
+
+    /* Item cards */
+    .item-card { margin-bottom: 1.5rem; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
+    .item-header { background: #f0f0f0; padding: 8px 12px; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ddd; }
+    .item-header .item-num { font-size: 9pt; color: #777; font-family: -apple-system, sans-serif; }
+    .item-header .item-type { font-size: 9pt; color: #555; font-family: -apple-system, sans-serif; font-style: italic; }
+    .item-body { display: flex; gap: 0; }
+    .item-photo { width: 1.6in; min-height: 1.6in; flex-shrink: 0; background: #f8f8f8; display: flex; align-items: center; justify-content: center; border-right: 1px solid #eee; }
+    .item-photo img { width: 1.6in; height: 1.6in; object-fit: cover; display: block; }
+    .item-photo .no-photo { font-size: 28pt; color: #ccc; }
+    .item-info { flex: 1; padding: 10px 14px; }
+    .item-name { font-size: 14pt; font-weight: bold; line-height: 1.2; margin-bottom: 2px; }
+    .item-brand { font-size: 10pt; color: #555; margin-bottom: 8px; }
+    .item-specs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px 16px; font-size: 9pt; }
+    .spec { display: flex; gap: 4px; }
+    .spec-label { color: #888; white-space: nowrap; min-width: 70px; font-family: -apple-system, sans-serif; }
+    .spec-value { color: #1a1a1a; font-family: -apple-system, sans-serif; }
+    .item-values { margin-top: 10px; padding-top: 8px; border-top: 1px solid #eee; display: flex; gap: 24px; font-size: 10pt; }
+    .value-block { display: flex; flex-direction: column; }
+    .value-label { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.05em; color: #888; font-family: -apple-system, sans-serif; }
+    .value-amount { font-size: 13pt; font-weight: bold; }
+    .value-amount.primary { color: #1a3c6e; }
+    .item-notes { margin-top: 8px; font-size: 9pt; color: #555; font-style: italic; border-top: 1px solid #eee; padding-top: 6px; }
+
+    /* Print button */
+    .print-btn {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: #1a1a1a; color: white; border: none; padding: 12px 24px;
+      border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
+      font-family: -apple-system, sans-serif;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Cover -->
+  <div class="cover">
+    <h1>Personal Property Insurance Inventory</h1>
+    <div class="subtitle">Musical Instruments &amp; Equipment</div>
+    <div class="meta">
+      <span><label>Generated</label><strong>{{ generated }}</strong></span>
+      <span><label>Items</label><strong>{{ items | length }}</strong></span>
+      <span><label>Total Est. Value</label><strong>${{ "%.2f"|format(total_value) }}</strong></span>
+      {% if total_paid %}<span><label>Total Paid</label><strong>${{ "%.2f"|format(total_paid) }}</strong></span>{% endif %}
+    </div>
+  </div>
+
+  <!-- Summary table -->
+  <table class="summary">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Item</th>
+        <th>Type</th>
+        <th>Year</th>
+        <th>Serial</th>
+        <th>Condition</th>
+        <th>Est. Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item.name }}{% if item.brand %}<br><span style="color:#888;font-size:9pt">{{ item.brand }}{% if item.model %} {{ item.model }}{% endif %}</span>{% endif %}</td>
+        <td>{{ item.item_type.name }}</td>
+        <td>{{ item.year_produced or '—' }}</td>
+        <td style="font-family:monospace;font-size:9pt">{{ item.serial_number or '—' }}</td>
+        <td>{{ item.condition or '—' }}</td>
+        <td style="text-align:right;font-weight:600">${{ "%.2f"|format(item.current_value) if item.current_value else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="6">Total Estimated Value</td>
+        <td style="text-align:right">${{ "%.2f"|format(total_value) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- Detailed item cards -->
+  {% for item in items %}
+  <div class="item-card {% if not loop.first and loop.index0 % 3 == 0 %}page-break{% endif %}">
+    <div class="item-header">
+      <div>
+        <span class="item-num">#{{ loop.index }}</span>
+        <strong style="margin-left:8px;font-size:12pt">{{ item.name }}</strong>
+      </div>
+      <span class="item-type">{{ item.item_type.name }}</span>
+    </div>
+    <div class="item-body">
+      <div class="item-photo">
+        {% if item.photos %}
+        <img src="/photos/{{ item.photos[0].filename }}" alt="{{ item.name }}">
+        {% else %}
+        <span class="no-photo">{{ item.item_type.icon }}</span>
+        {% endif %}
+      </div>
+      <div class="item-info">
+        {% if item.brand or item.model %}
+        <div class="item-brand">{{ item.brand or '' }} {{ item.model or '' }} {% if item.year_produced %}· {{ item.year_produced }}{% endif %} {% if item.color %}· {{ item.color }}{% endif %}</div>
+        {% endif %}
+        <div class="item-specs">
+          {% if item.serial_number %}
+          <div class="spec"><span class="spec-label">Serial</span><span class="spec-value" style="font-family:monospace">{{ item.serial_number }}</span></div>
+          {% endif %}
+          {% if item.condition %}
+          <div class="spec"><span class="spec-label">Condition</span><span class="spec-value">{{ item.condition }}</span></div>
+          {% endif %}
+          {% if item.country_of_manufacture %}
+          <div class="spec"><span class="spec-label">Made in</span><span class="spec-value">{{ item.country_of_manufacture }}</span></div>
+          {% endif %}
+          {% if item.date_acquired %}
+          <div class="spec"><span class="spec-label">Acquired</span><span class="spec-value">{{ item.date_acquired }}</span></div>
+          {% endif %}
+          {% if item.acquired_from %}
+          <div class="spec"><span class="spec-label">From</span><span class="spec-value">{{ item.acquired_from }}</span></div>
+          {% endif %}
+          {% if item.location %}
+          <div class="spec"><span class="spec-label">Location</span><span class="spec-value">{{ item.location.name }}</span></div>
+          {% endif %}
+          {% for label, value in attr_map[item.id].items() %}
+          <div class="spec"><span class="spec-label">{{ label }}</span><span class="spec-value">{{ value }}</span></div>
+          {% endfor %}
+        </div>
+        <div class="item-values">
+          {% if item.current_value %}
+          <div class="value-block">
+            <span class="value-label">Est. Value</span>
+            <span class="value-amount primary">${{ "%.2f"|format(item.current_value) }}</span>
+          </div>
+          {% endif %}
+          {% if item.amount_paid %}
+          <div class="value-block">
+            <span class="value-label">Paid</span>
+            <span class="value-amount">${{ "%.2f"|format(item.amount_paid) }}</span>
+          </div>
+          {% endif %}
+        </div>
+        {% if item.notes %}
+        <div class="item-notes">{{ item.notes }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid #ddd;font-size:8pt;color:#999;font-family:-apple-system,sans-serif;text-align:center;">
+    Generated {{ generated }} · inventory.hollandit.work · Values are estimates for insurance purposes only.
+  </div>
+
+</div>
+
+<button class="print-btn no-print" onclick="window.print()">Save as PDF</button>
+</body>
+</html>

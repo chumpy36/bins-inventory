@@ -140,6 +140,32 @@ async def inventory_list(request: Request, db: Session = Depends(get_db)):
     })
 
 
+# ── Insurance export ──────────────────────────────────────────────────────────
+
+@router.get("/insurance", response_class=HTMLResponse)
+async def insurance_export(request: Request, db: Session = Depends(get_db)):
+    from datetime import date
+    items = (
+        db.query(InventoryItem)
+        .filter(InventoryItem.sold == 0)
+        .order_by(InventoryItem.item_type_id, InventoryItem.name)
+        .all()
+    )
+    total_value = sum(i.current_value or 0 for i in items)
+    total_paid = sum(i.amount_paid or 0 for i in items)
+    attr_map = {}
+    for item in items:
+        attr_map[item.id] = {a.attribute_def.label: a.value for a in item.attributes if a.value}
+    return templates.TemplateResponse("inventory_insurance.html", {
+        "request": request,
+        "items": items,
+        "attr_map": attr_map,
+        "total_value": total_value,
+        "total_paid": total_paid,
+        "generated": date.today().strftime("%B %d, %Y"),
+    })
+
+
 # ── Financials ────────────────────────────────────────────────────────────────
 
 @router.get("/financials", response_class=HTMLResponse)
