@@ -59,10 +59,17 @@ async def qr_label(token: str, request: Request, db: Session = Depends(get_db), 
 
 
 @router.get("/sheet/all", response_class=HTMLResponse)
-async def qr_sheet(request: Request, db: Session = Depends(get_db)):
-    bins = db.query(Bin).order_by(Bin.name).all()
+async def qr_sheet(
+    request: Request,
+    db: Session = Depends(get_db),
+    bins: list[str] | None = Query(default=None),
+):
+    q = db.query(Bin)
+    if bins:
+        q = q.filter(Bin.token.in_(bins))
+    rows = q.order_by(Bin.name).all()
     items = []
-    for b in bins:
+    for b in rows:
         url = f"{BASE_URL}/bin/{b.token}"
         qr_b64 = make_qr_png_b64(url)
         items.append({"bin": b, "qr_b64": qr_b64})
