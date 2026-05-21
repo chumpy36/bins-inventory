@@ -64,16 +64,37 @@ async def qr_sheet(
     db: Session = Depends(get_db),
     bins: list[str] | None = Query(default=None),
 ):
-    q = db.query(Bin)
     if bins:
-        q = q.filter(Bin.token.in_(bins))
-    rows = q.order_by(Bin.name).all()
-    items = []
-    for b in rows:
-        url = f"{BASE_URL}/bin/{b.token}"
-        qr_b64 = make_qr_png_b64(url)
-        items.append({"bin": b, "qr_b64": qr_b64})
+        rows = db.query(Bin).filter(Bin.token.in_(bins)).all()
+        # Preserve the order of the `bins=` parameter so callers can control
+        # print sequence (e.g. created-at order). SQL IN() loses ordering.
+        order_map = {tok: i for i, tok in enumerate(bins)}
+        rows.sort(key=lambda b: order_map.get(b.token, len(bins)))
+    else:
+        rows = db.query(Bin).order_by(Bin.name).all()
+
+    # Avery 8163: 2 cols × 5 rows = 10 labels per sheet.
+    # Slot formula matches the single-bin label route above.
+    pages = []
+    for chunk_start in range(0, len(rows), 10):
+        chunk = rows[chunk_start:chunk_start + 10]
+        labels = []
+        for j, b in enumerate(chunk):
+            row = j // 2
+            col = j % 2
+            top = 0.5 + row * 2
+            left = col * 4.125 + 0.157
+            url = f"{BASE_URL}/bin/{b.token}"
+            qr_b64 = make_qr_png_b64(url)
+            labels.append({
+                "bin": b,
+                "qr_b64": qr_b64,
+                "top": top,
+                "left": left,
+            })
+        pages.append(labels)
+
     return templates.TemplateResponse("qr_sheet.html", {
         "request": request,
-        "items": items,
+        "pages": pages,
     })

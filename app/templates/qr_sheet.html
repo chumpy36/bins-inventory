@@ -2,52 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>All QR Codes — Bin Inventory</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Sheet — Bin Inventory</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, sans-serif; background: white; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 2.5in);
-      gap: 0.15in;
-      padding: 0.3in;
+    body { font-family: -apple-system, sans-serif; background: white; position: relative; }
+    @media print {
+      @page { size: 8.5in 11in portrait; margin: 0; }
+      .btn { display: none !important; }
     }
+    .page {
+      position: relative;
+      width: 8.5in;
+      height: 11in;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
     .label {
+      position: absolute;
+      width: 4in;
+      height: 2in;
+      padding: 0.12in 0.15in;
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 0.15in;
+    }
+    .label img { width: 1.5in; height: 1.5in; flex-shrink: 0; }
+    .label-text {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 0.1in;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      page-break-inside: avoid;
+      justify-content: flex-start;
+      gap: 3px;
+      overflow: hidden;
+      padding-top: 0.05in;
     }
-    .label img { width: 1.6in; height: 1.6in; }
-    .bin-name { font-size: 9pt; font-weight: 700; text-align: center; line-height: 1.2; }
-    .bin-meta { font-size: 7pt; color: #888; text-align: center; }
-    .btn { display: inline-block; margin: 16px; padding: 10px 20px; background: #4f46e5; color: white;
-           text-decoration: none; border-radius: 8px; font-family: -apple-system, sans-serif; cursor: pointer;
-           border: none; font-size: 14px; }
-    @media print { .btn { display: none; } }
+    .bin-name { font-size: 14pt; font-weight: 700; line-height: 1.2; word-break: break-word; overflow-wrap: break-word; }
+    .bin-meta { font-size: 9pt; color: #555; }
+    .bin-notes { font-size: 8pt; color: #333; margin-top: 5px; line-height: 1.3; word-break: break-word; }
+    .btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 24px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-family: -apple-system, sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
   </style>
 </head>
 <body>
-  <div style="text-align:center">
-    <button class="btn" onclick="window.print()">🖨 Print All QR Codes</button>
-  </div>
-  <div class="grid">
-    {% for item in items %}
-    <div class="label">
-      <img src="data:image/png;base64,{{ item.qr_b64 }}" alt="QR">
-      <div class="bin-name">{{ item.bin.name }}</div>
-      {% if item.bin.category %}
-      <div class="bin-meta">{{ item.bin.category.name }}</div>
-      {% endif %}
-      {% if item.bin.location %}
-      <div class="bin-meta">{{ item.bin.location }}</div>
-      {% endif %}
+  <button class="btn" onclick="window.print()">Print {{ pages|length }} sheet{{ 's' if pages|length != 1 else '' }}</button>
+
+  {% for labels in pages %}
+  <div class="page">
+    {% for item in labels %}
+    <div class="label" style="top: {{ item.top }}in; left: {{ item.left }}in;">
+      <img src="data:image/png;base64,{{ item.qr_b64 }}" alt="QR Code">
+      <div class="label-text">
+        <div class="bin-name">{{ item.bin.name }}</div>
+        {% if item.bin.category %}
+        <div class="bin-meta">{{ item.bin.category.name }}</div>
+        {% endif %}
+        {% if item.bin.location %}
+        <div class="bin-meta">📍 {{ item.bin.location }}</div>
+        {% endif %}
+        {% if item.bin.notes %}
+        <div class="bin-notes">{{ item.bin.notes }}</div>
+        {% endif %}
+      </div>
     </div>
     {% endfor %}
   </div>
+  {% endfor %}
 </body>
 </html>
