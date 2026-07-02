@@ -26,10 +26,27 @@ ssh "$NAS_HOST" "
   cd $NAS_DEPLOY_DIR
   git pull
   sudo /usr/local/bin/docker build -t $IMAGE_NAME .
-  sudo /usr/local/bin/docker compose down
+
+  # --timeout 5: don't wait 10+ minutes for a slow uvicorn shutdown.
+  # SIGTERM is sent, 5s grace, then SIGKILL. Stateless web container, safe.
+  sudo /usr/local/bin/docker compose down --timeout 5
+
   sudo /usr/local/bin/docker network prune -f
   sudo /usr/local/bin/docker compose up -d
+
+  # Known Synology-docker bug: compose up sometimes leaves containers in
+  # 'Created' state instead of starting them. Bounce any that are stuck.
+  sleep 2
+  for c in $IMAGE_NAME ${IMAGE_NAME}-tunnel; do
+    STATE=\$(sudo /usr/local/bin/docker inspect -f '{{.State.Status}}' \"\$c\" 2>/dev/null || echo missing)
+    if [ \"\$STATE\" = \"created\" ]; then
+      echo \"Container \$c stuck in Created — starting manually\"
+      sudo /usr/local/bin/docker start \"\$c\"
+    fi
+  done
+
   echo 'Deploy complete!'
+  sudo /usr/local/bin/docker ps --filter \"name=$IMAGE_NAME\" --format '{{.Names}}\t{{.Status}}'
 "
 
 echo "=== Done ==="

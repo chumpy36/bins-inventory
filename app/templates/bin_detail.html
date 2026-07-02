@@ -62,8 +62,8 @@
       hx-swap="innerHTML"
       hx-encoding="multipart/form-data"
       name="file"
-      onchange="this.form && this.form.requestSubmit ? this.closest('label').querySelector('form') : htmx.trigger(this, 'change')"
-      hx-trigger="change">
+      hx-trigger="change"
+      hx-on::after-request="this.value=''">
   </label>
 </div>
 
