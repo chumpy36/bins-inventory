@@ -12,6 +12,22 @@ register_heif_opener()
 
 UPLOAD_ERROR = "Couldn't read that file as an image — try a JPEG, PNG, or HEIC photo."
 
+MAX_UPLOAD_MB = 25
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
+TOO_LARGE_ERROR = f"That file is too large — photos must be under {MAX_UPLOAD_MB}MB."
+
+
+async def read_capped(file):
+    """Read an UploadFile in chunks; return None if it exceeds MAX_UPLOAD_BYTES."""
+    chunks = []
+    total = 0
+    while chunk := await file.read(1024 * 1024):
+        total += len(chunk)
+        if total > MAX_UPLOAD_BYTES:
+            return None
+        chunks.append(chunk)
+    return b"".join(chunks)
+
 from app.database import get_db
 from app.models import Photo, Bin, InventoryPhoto, InventoryItem
 
@@ -54,7 +70,13 @@ async def upload_photo(
     if not b:
         return HTMLResponse("Bin not found", status_code=404)
 
-    contents = await file.read()
+    contents = await read_capped(file)
+    if contents is None:
+        return templates.TemplateResponse("partials/photos_strip.html", {
+            "request": request,
+            "bin": b,
+            "error": TOO_LARGE_ERROR,
+        })
     filename = f"{uuid.uuid4().hex}.jpg"
     os.makedirs(PHOTOS_DIR, exist_ok=True)
     try:
@@ -90,7 +112,13 @@ async def upload_inventory_photo(
     if not item:
         return HTMLResponse("Item not found", status_code=404)
 
-    contents = await file.read()
+    contents = await read_capped(file)
+    if contents is None:
+        return templates.TemplateResponse("partials/inventory_photos_strip.html", {
+            "request": request,
+            "item": item,
+            "error": TOO_LARGE_ERROR,
+        })
     filename = f"{uuid.uuid4().hex}.jpg"
     os.makedirs(PHOTOS_DIR, exist_ok=True)
     try:
