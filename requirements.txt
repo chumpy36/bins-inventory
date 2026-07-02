@@ -7,3 +7,4 @@ sqlalchemy
 qrcode[pil]
 Pillow
 aiofiles
+PyJWT[crypto]

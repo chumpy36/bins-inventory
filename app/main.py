@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from app.cf_access import CloudflareAccessMiddleware
 from app.database import init_db
 from app.routes import bins, items, categories, search, qr, photos, inventory, locations
 
@@ -14,6 +15,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Home Inventory", lifespan=lifespan)
+app.add_middleware(CloudflareAccessMiddleware)
 
 STATIC_DIR = os.getenv("STATIC_DIR", "/app/app/static")
 DATA_DIR = os.getenv("DATA_DIR", "/app/data")

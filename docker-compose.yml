@@ -9,6 +9,8 @@ services:
       - DATA_DIR=/app/data
       - PHOTOS_DIR=/app/data/photos
       - BASE_URL=https://inventory.hollandit.work
+      - CF_ACCESS_TEAM_DOMAIN=hitga.cloudflareaccess.com
+      - CF_ACCESS_AUD=64426e8b2d7d43adc0b1dfba9ae1af68151ea44ad571fcee2e4a346e7e05cf61
     restart: unless-stopped
 
   tunnel:
