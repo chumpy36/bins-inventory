@@ -8,3 +8,4 @@ qrcode[pil]
 Pillow
 aiofiles
 PyJWT[crypto]
+pillow-heif

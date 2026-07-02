@@ -7,6 +7,11 @@ from sqlalchemy.orm import Session
 from PIL import Image
 import io
 
+from pillow_heif import register_heif_opener
+register_heif_opener()
+
+UPLOAD_ERROR = "Couldn't read that file as an image — try a JPEG, PNG, or HEIC photo."
+
 from app.database import get_db
 from app.models import Photo, Bin, InventoryPhoto, InventoryItem
 
@@ -52,7 +57,14 @@ async def upload_photo(
     contents = await file.read()
     filename = f"{uuid.uuid4().hex}.jpg"
     os.makedirs(PHOTOS_DIR, exist_ok=True)
-    resize_and_save(contents, filename)
+    try:
+        resize_and_save(contents, filename)
+    except Exception:
+        return templates.TemplateResponse("partials/photos_strip.html", {
+            "request": request,
+            "bin": b,
+            "error": UPLOAD_ERROR,
+        })
 
     # Max sort order + 1
     max_order = max((p.sort_order for p in b.photos), default=-1)
@@ -81,7 +93,14 @@ async def upload_inventory_photo(
     contents = await file.read()
     filename = f"{uuid.uuid4().hex}.jpg"
     os.makedirs(PHOTOS_DIR, exist_ok=True)
-    resize_and_save(contents, filename)
+    try:
+        resize_and_save(contents, filename)
+    except Exception:
+        return templates.TemplateResponse("partials/inventory_photos_strip.html", {
+            "request": request,
+            "item": item,
+            "error": UPLOAD_ERROR,
+        })
 
     max_order = max((p.sort_order for p in item.photos), default=-1)
     photo = InventoryPhoto(inventory_item_id=item.id, filename=filename, sort_order=max_order + 1)
