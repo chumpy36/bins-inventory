@@ -1,3 +1,6 @@
+{% if error %}
+<div class="mx-4 mt-3 mb-1 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">{{ error }}</div>
+{% endif %}
 {% if bin.items %}
   {% for item in bin.items %}
   <div id="item-{{ item.id }}">

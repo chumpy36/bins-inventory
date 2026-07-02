@@ -11,9 +11,13 @@ router = APIRouter(prefix="/item")
 templates = Jinja2Templates(directory="/app/app/templates")
 
 
+QUANTITY_ERROR = "Quantity must be at least 1."
+
+
 @router.post("/add/{token}")
 async def add_item(
     token: str,
+    request: Request,
     name: str = Form(...),
     quantity: int = Form(1),
     notes: Optional[str] = Form(None),
@@ -22,6 +26,12 @@ async def add_item(
     b = db.query(Bin).filter(Bin.token == token).first()
     if not b:
         return HTMLResponse("Bin not found", status_code=404)
+    if quantity < 1:
+        return templates.TemplateResponse("partials/items_list.html", {
+            "request": request,
+            "bin": b,
+            "error": QUANTITY_ERROR,
+        }, status_code=422)
     item = Item(
         bin_id=b.id,
         name=name.strip(),
@@ -84,6 +94,12 @@ async def edit_item(
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
         return HTMLResponse("Not found", status_code=404)
+    if quantity < 1:
+        return templates.TemplateResponse("partials/item_edit.html", {
+            "request": request,
+            "item": item,
+            "error": QUANTITY_ERROR,
+        }, status_code=422)
     item.name = name.strip()
     item.quantity = quantity
     item.notes = notes.strip() if notes else None

@@ -1,5 +1,6 @@
 import os
 import uuid
+import logging
 from fastapi import APIRouter, Depends, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -30,6 +31,8 @@ async def read_capped(file):
 
 from app.database import get_db
 from app.models import Photo, Bin, InventoryPhoto, InventoryItem
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/photo")
 templates = Jinja2Templates(directory="/app/app/templates")
@@ -148,12 +151,20 @@ async def delete_inventory_photo(photo_id: int, request: Request, db: Session = 
     if not photo:
         return HTMLResponse("", status_code=404)
     item_ref = photo.inventory_item
-    filepath = os.path.join(PHOTOS_DIR, photo.filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
+    filename = photo.filename
     db.delete(photo)
     db.commit()
     db.refresh(item_ref)
+
+    # Remove the file only after the DB delete has committed. A leftover file
+    # on unlink failure is a safer failure mode than a dangling DB row.
+    filepath = os.path.join(PHOTOS_DIR, filename)
+    try:
+        os.remove(filepath)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        logger.warning("Failed to remove photo file %s after DB delete", filepath, exc_info=True)
 
     return templates.TemplateResponse("partials/inventory_photos_strip.html", {
         "request": request,
@@ -167,12 +178,20 @@ async def delete_photo(photo_id: int, request: Request, db: Session = Depends(ge
     if not photo:
         return HTMLResponse("", status_code=404)
     bin_ref = photo.bin
-    filepath = os.path.join(PHOTOS_DIR, photo.filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
+    filename = photo.filename
     db.delete(photo)
     db.commit()
     db.refresh(bin_ref)
+
+    # Remove the file only after the DB delete has committed. A leftover file
+    # on unlink failure is a safer failure mode than a dangling DB row.
+    filepath = os.path.join(PHOTOS_DIR, filename)
+    try:
+        os.remove(filepath)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        logger.warning("Failed to remove photo file %s after DB delete", filepath, exc_info=True)
 
     return templates.TemplateResponse("partials/photos_strip.html", {
         "request": request,

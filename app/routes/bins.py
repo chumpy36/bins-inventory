@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -9,6 +10,8 @@ from app.models import Bin, Category, Location
 
 router = APIRouter(prefix="/bin")
 templates = Jinja2Templates(directory="/app/app/templates")
+
+PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
 
 
 @router.get("/new", response_class=HTMLResponse)
@@ -95,6 +98,10 @@ async def edit_bin(
 async def delete_bin(token: str, db: Session = Depends(get_db)):
     b = db.query(Bin).filter(Bin.token == token).first()
     if b:
+        for photo in b.photos:
+            filepath = os.path.join(PHOTOS_DIR, photo.filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
         db.delete(b)
         db.commit()
     return RedirectResponse("/", status_code=303)
