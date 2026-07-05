@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.cf_access import CloudflareAccessMiddleware
 from app.database import init_db
-from app.routes import bins, items, categories, search, qr, photos, inventory, locations
+from app.routes import bins, items, categories, search, qr, photos, inventory, locations, suggest
 
 
 @asynccontextmanager
@@ -31,3 +31,4 @@ app.include_router(qr.router)
 app.include_router(photos.router)
 app.include_router(inventory.router)
 app.include_router(locations.router)
+app.include_router(suggest.router)

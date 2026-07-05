@@ -67,6 +67,33 @@
   </label>
 </div>
 
+<!-- AI suggestions -->
+{% if bin.photos %}
+<style>
+  .suggest-loading { display: none; }
+  .htmx-request .suggest-idle { display: none; }
+  .htmx-request .suggest-loading { display: flex; }
+</style>
+<div class="mb-4">
+  <button
+    hx-post="/bin/{{ bin.token }}/suggest"
+    hx-target="#suggest-panel"
+    hx-swap="innerHTML"
+    hx-disabled-elt="this"
+    class="flex items-center justify-center gap-2 w-full border-2 border-dashed border-indigo-200 rounded-xl py-3 text-indigo-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors text-sm font-medium disabled:opacity-50">
+    <span class="suggest-idle">✨ Suggest items from photos</span>
+    <span class="suggest-loading items-center gap-2">
+      <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+      </svg>
+      Analyzing photos… this can take a minute
+    </span>
+  </button>
+  <div id="suggest-panel" class="mt-3"></div>
+</div>
+{% endif %}
+
 <!-- Items -->
 <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-24">
   <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">

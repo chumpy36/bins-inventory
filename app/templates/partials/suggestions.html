@@ -1,0 +1,61 @@
+{% if error %}
+<div class="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">{{ error }}</div>
+{% elif suggestions is defined %}
+  {% if not suggestions and not summary %}
+  <div class="px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-sm">
+    Nothing new spotted — everything visible in the photos looks cataloged already.
+  </div>
+  {% else %}
+  <form method="post" action="/bin/{{ bin.token }}/suggest/accept"
+        class="bg-white rounded-2xl border border-indigo-200 overflow-hidden">
+    <div class="px-4 py-3 border-b border-gray-100 bg-indigo-50/50">
+      <h3 class="font-semibold text-gray-700 text-sm">✨ AI suggestions</h3>
+      <p class="text-xs text-gray-400 mt-0.5">Check what you want to add — nothing existing is changed.</p>
+    </div>
+
+    {% for s in suggestions %}
+    <label class="flex items-start gap-3 px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50">
+      <input type="checkbox" name="accept" value="{{ loop.index0 }}" checked
+        class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+      <input type="hidden" name="item-{{ loop.index0 }}-name" value="{{ s.name }}">
+      <input type="hidden" name="item-{{ loop.index0 }}-qty" value="{{ s.quantity }}">
+      <input type="hidden" name="item-{{ loop.index0 }}-notes" value="{{ s.notes }}">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          {% if s.quantity > 1 %}
+          <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">×{{ s.quantity }}</span>
+          {% endif %}
+          <span class="text-gray-800 text-sm">{{ s.name }}</span>
+        </div>
+        {% if s.notes %}
+        <div class="text-xs text-gray-400 mt-0.5">{{ s.notes }}</div>
+        {% endif %}
+      </div>
+    </label>
+    {% endfor %}
+
+    {% if summary %}
+    <label class="flex items-start gap-3 px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50">
+      <input type="checkbox" name="append_summary" value="1"
+        class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-400">
+      <input type="hidden" name="summary" value="{{ summary }}">
+      <div class="flex-1 min-w-0">
+        <span class="text-gray-800 text-sm">Append summary to bin notes</span>
+        <div class="text-xs text-gray-400 mt-0.5">{{ summary }}</div>
+      </div>
+    </label>
+    {% endif %}
+
+    <div class="px-4 py-3 flex gap-2">
+      <button type="submit"
+        class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-indigo-700 text-sm">
+        Add selected
+      </button>
+      <button type="button" onclick="document.getElementById('suggest-panel').innerHTML=''"
+        class="text-gray-400 hover:text-gray-600 px-3 py-2 text-sm">
+        Dismiss
+      </button>
+    </div>
+  </form>
+  {% endif %}
+{% endif %}
