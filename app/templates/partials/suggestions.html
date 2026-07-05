@@ -8,6 +8,7 @@
   {% else %}
   <form method="post" action="/bin/{{ bin.token }}/suggest/accept"
         class="bg-white rounded-2xl border border-indigo-200 overflow-hidden">
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     <div class="px-4 py-3 border-b border-gray-100 bg-indigo-50/50">
       <h3 class="font-semibold text-gray-700 text-sm">✨ AI suggestions</h3>
       <p class="text-xs text-gray-400 mt-0.5">Check what you want to add — nothing existing is changed.</p>
@@ -51,7 +52,11 @@
         class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-indigo-700 text-sm">
         Add selected
       </button>
-      <button type="button" onclick="document.getElementById('suggest-panel').innerHTML=''"
+      <button type="button"
+        hx-post="/bin/{{ bin.token }}/suggest/dismiss"
+        hx-target="closest form"
+        hx-swap="outerHTML"
+        hx-confirm="Dismiss these suggestions?"
         class="text-gray-400 hover:text-gray-600 px-3 py-2 text-sm">
         Dismiss
       </button>

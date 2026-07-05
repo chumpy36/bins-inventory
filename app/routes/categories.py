@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 
 from app.database import get_db
-from app.models import Bin, Category, Item, InventoryItem, ItemType
+from app.models import AISuggestion, Bin, Category, Item, InventoryItem, ItemType
 
 router = APIRouter()
 templates = Jinja2Templates(directory="/app/app/templates")
@@ -33,10 +33,15 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
+    suggestion_bin_count = (
+        db.query(func.count(func.distinct(AISuggestion.bin_id))).scalar() or 0
+    )
+
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "categories": categories,
         "uncategorized": uncategorized,
+        "suggestion_bin_count": suggestion_bin_count,
         "stats": {
             "bin_count": bin_count,
             "item_count": item_count,

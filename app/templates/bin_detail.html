@@ -90,7 +90,13 @@
       Analyzing photos… this can take a minute
     </span>
   </button>
-  <div id="suggest-panel" class="mt-3"></div>
+  <div id="suggest-panel" class="mt-3">
+    {% if pending_suggestions or pending_summary %}
+      {% with suggestions = pending_suggestions, summary = pending_summary %}
+        {% include "partials/suggestions.html" %}
+      {% endwith %}
+    {% endif %}
+  </div>
 </div>
 {% endif %}
 

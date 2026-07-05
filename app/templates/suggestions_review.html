@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Review AI suggestions — Bins{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-4">
+  <a href="/" class="flex items-center gap-1 text-gray-400 hover:text-gray-700 text-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back
+  </a>
+</div>
+
+<h1 class="text-xl font-bold text-gray-900 mb-1">✨ Review AI suggestions</h1>
+<p class="text-sm text-gray-400 mb-4">
+  {{ entries | length }} bin{{ "s" if entries | length != 1 }} to review.
+  Nothing is added until you approve it; existing items and notes are never changed.
+</p>
+
+{% if not entries %}
+<div class="px-4 py-12 text-center text-gray-400 text-sm bg-white rounded-2xl border border-gray-200">
+  All caught up — no pending suggestions.
+</div>
+{% endif %}
+
+{% for entry in entries %}
+<div class="mb-6">
+  <a href="/bin/{{ entry.bin.token }}" class="flex items-baseline gap-2 mb-2 px-1">
+    <span class="font-semibold text-gray-800">{{ entry.bin.name }}</span>
+    {% if entry.bin.display_location %}
+    <span class="text-xs text-gray-400">📍 {{ entry.bin.display_location }}</span>
+    {% endif %}
+    <span class="text-xs text-gray-400 ml-auto">{{ entry.bin.items | length }} existing items</span>
+  </a>
+  {% with bin = entry.bin, suggestions = entry.suggestions, summary = entry.summary, next = "/suggestions" %}
+    {% include "partials/suggestions.html" %}
+  {% endwith %}
+</div>
+{% endfor %}
+
+{% endblock %}

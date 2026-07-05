@@ -58,6 +58,7 @@ class Bin(Base):
     location_obj = relationship("Location", back_populates="bins")
     items = relationship("Item", back_populates="bin", order_by="Item.name", cascade="all, delete-orphan")
     photos = relationship("Photo", back_populates="bin", order_by="Photo.sort_order", cascade="all, delete-orphan")
+    ai_suggestions = relationship("AISuggestion", back_populates="bin", cascade="all, delete-orphan")
 
     @property
     def display_location(self):
@@ -89,6 +90,24 @@ class Photo(Base):
     created_at = Column(DateTime, default=utcnow)
 
     bin = relationship("Bin", back_populates="photos")
+
+
+class AISuggestion(Base):
+    """Pending AI-generated suggestion awaiting human review (from the batch
+    backfill). kind='item' rows carry name/quantity/notes; kind='summary'
+    rows carry the bin summary in notes. Accepting or dismissing a bin's
+    review panel deletes its rows — nothing here touches live data."""
+    __tablename__ = "ai_suggestions"
+
+    id = Column(Integer, primary_key=True)
+    bin_id = Column(Integer, ForeignKey("bins.id", ondelete="CASCADE"), nullable=False)
+    kind = Column(String, default="item")  # item | summary
+    name = Column(String, nullable=True)
+    quantity = Column(Integer, default=1)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+    bin = relationship("Bin", back_populates="ai_suggestions")
 
 
 class ItemType(Base):

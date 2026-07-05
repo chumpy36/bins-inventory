@@ -38,6 +38,7 @@ def init_db():
         Category, Bin, Item, Photo,
         Location, ItemType, AttributeDefinition,
         InventoryItem, ItemAttribute, InventoryPhoto,
+        AISuggestion,
     )
     # Create all tables that don't exist yet (safe for both fresh and existing DBs)
     Base.metadata.create_all(bind=engine)

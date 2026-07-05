@@ -2,6 +2,15 @@
 {% block title %}Bin Inventory{% endblock %}
 {% block content %}
 
+{% if suggestion_bin_count %}
+<a href="/suggestions" class="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 mb-4 hover:bg-indigo-100 transition-colors">
+  <span class="text-sm font-medium text-indigo-700">✨ {{ suggestion_bin_count }} bin{{ "s" if suggestion_bin_count != 1 }} with AI suggestions to review</span>
+  <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+  </svg>
+</a>
+{% endif %}
+
 <!-- Stats strip -->
 <div class="grid grid-cols-2 gap-3 mb-6">
   <a href="/inventory" class="bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all">

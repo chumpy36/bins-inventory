@@ -51,9 +51,13 @@ async def bin_detail(token: str, request: Request, db: Session = Depends(get_db)
     b = db.query(Bin).filter(Bin.token == token).first()
     if not b:
         return HTMLResponse("Bin not found", status_code=404)
+    from app.routes.suggest import pending_context
+    pending_suggestions, pending_summary = pending_context(b)
     return templates.TemplateResponse("bin_detail.html", {
         "request": request,
         "bin": b,
+        "pending_suggestions": pending_suggestions,
+        "pending_summary": pending_summary,
     })
 
 
