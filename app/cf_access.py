@@ -40,6 +40,7 @@ class CloudflareAccessMiddleware(BaseHTTPMiddleware):
         except Exception:
             return PlainTextResponse("Forbidden: invalid Cloudflare Access token", status_code=403)
 
-        # e.g. for future created_by attribution
-        request.state.user_email = claims.get("email", "")
+        # Human sessions carry email; service-token sessions carry common_name
+        # (the service token client ID) instead.
+        request.state.user_email = claims.get("email") or claims.get("common_name", "")
         return await call_next(request)

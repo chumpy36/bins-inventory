@@ -7,5 +7,6 @@ data/
 .DS_Store
 venv/
 .venv/
+.venv*/
 app/static/*
 !app/static/favicon.svg

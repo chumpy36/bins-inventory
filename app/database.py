@@ -2,7 +2,11 @@ import os
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////app/data/bins.db")
+DEFAULT_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"sqlite:///{os.path.join(os.getenv('DATA_DIR', DEFAULT_DATA_DIR), 'bins.db')}",
+)
 
 engine = create_engine(
     DATABASE_URL,
@@ -69,3 +73,6 @@ def init_db():
 
     from app.migrations.migration_005 import run as run_005
     run_005()
+
+    from app.migrations.migration_006 import run as run_006
+    run_006()
