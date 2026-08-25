@@ -35,6 +35,7 @@ class Location(Base):
     parent_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow)
+    created_by = Column(String, nullable=True)
 
     parent = relationship("Location", remote_side="Location.id", foreign_keys="Location.parent_id")
     bins = relationship("Bin", back_populates="location_obj")
@@ -52,6 +53,7 @@ class Bin(Base):
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow)
+    created_by = Column(String, nullable=True)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     category = relationship("Category", back_populates="bins")
@@ -76,6 +78,7 @@ class Item(Base):
     quantity = Column(Integer, default=1)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow)
+    created_by = Column(String, nullable=True)
 
     bin = relationship("Bin", back_populates="items")
 
@@ -171,6 +174,7 @@ class InventoryItem(Base):
 
     token = Column(String, unique=True, nullable=False, default=generate_token)
     created_at = Column(DateTime, default=utcnow)
+    created_by = Column(String, nullable=True)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     item_type = relationship("ItemType", back_populates="inventory_items")
