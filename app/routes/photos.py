@@ -2,7 +2,7 @@ import os
 import uuid
 import logging
 from fastapi import APIRouter, Depends, Request, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from PIL import Image
@@ -40,6 +40,27 @@ templates = Jinja2Templates(directory="/app/app/templates")
 PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
 MAX_WIDTH = 1200
 JPEG_QUALITY = 85
+
+
+def move_photo(db: Session, photo, siblings, direction: str):
+    """Move a photo one position and normalize its record's sort order."""
+    if direction not in {"left", "right"}:
+        return False
+
+    ordered = sorted(siblings, key=lambda p: (p.sort_order, p.id))
+    current = next((i for i, sibling in enumerate(ordered) if sibling.id == photo.id), None)
+    if current is None:
+        return False
+
+    target = current - 1 if direction == "left" else current + 1
+    if target < 0 or target >= len(ordered):
+        return True
+
+    ordered[current], ordered[target] = ordered[target], ordered[current]
+    for sort_order, sibling in enumerate(ordered):
+        sibling.sort_order = sort_order
+    db.commit()
+    return True
 
 
 def resize_and_save(upload: bytes, filename: str):
@@ -172,6 +193,29 @@ async def delete_inventory_photo(photo_id: int, request: Request, db: Session = 
     })
 
 
+@router.post("/item/{photo_id}/move/{direction}")
+async def move_inventory_photo(
+    photo_id: int, direction: str, request: Request, db: Session = Depends(get_db)
+):
+    photo = db.query(InventoryPhoto).filter(InventoryPhoto.id == photo_id).first()
+    if not photo:
+        return HTMLResponse("", status_code=404)
+    item_ref = photo.inventory_item
+    siblings = (
+        db.query(InventoryPhoto)
+        .filter(InventoryPhoto.inventory_item_id == item_ref.id)
+        .order_by(InventoryPhoto.sort_order, InventoryPhoto.id)
+        .all()
+    )
+    if not move_photo(db, photo, siblings, direction):
+        return HTMLResponse("Invalid direction", status_code=400)
+    db.refresh(item_ref)
+    return templates.TemplateResponse("partials/inventory_photos_strip.html", {
+        "request": request,
+        "item": item_ref,
+    })
+
+
 @router.post("/{photo_id}/delete")
 async def delete_photo(photo_id: int, request: Request, db: Session = Depends(get_db)):
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
@@ -193,6 +237,29 @@ async def delete_photo(photo_id: int, request: Request, db: Session = Depends(ge
     except OSError:
         logger.warning("Failed to remove photo file %s after DB delete", filepath, exc_info=True)
 
+    return templates.TemplateResponse("partials/photos_strip.html", {
+        "request": request,
+        "bin": bin_ref,
+    })
+
+
+@router.post("/{photo_id}/move/{direction}")
+async def move_bin_photo(
+    photo_id: int, direction: str, request: Request, db: Session = Depends(get_db)
+):
+    photo = db.query(Photo).filter(Photo.id == photo_id).first()
+    if not photo:
+        return HTMLResponse("", status_code=404)
+    bin_ref = photo.bin
+    siblings = (
+        db.query(Photo)
+        .filter(Photo.bin_id == bin_ref.id)
+        .order_by(Photo.sort_order, Photo.id)
+        .all()
+    )
+    if not move_photo(db, photo, siblings, direction):
+        return HTMLResponse("Invalid direction", status_code=400)
+    db.refresh(bin_ref)
     return templates.TemplateResponse("partials/photos_strip.html", {
         "request": request,
         "bin": bin_ref,

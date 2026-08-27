@@ -120,3 +120,69 @@ def test_migrations_are_idempotent(client):
     init_db()
     init_db()
     assert client.get("/api/gear").status_code == 200
+
+
+def test_photo_reordering_is_scoped_to_its_record(client, monkeypatch):
+    from fastapi.templating import Jinja2Templates
+
+    from app.database import SessionLocal
+    from app.models import Bin, InventoryItem, InventoryPhoto, Photo
+    from app.routes import photos as photo_routes
+
+    monkeypatch.setattr(
+        photo_routes,
+        "templates",
+        Jinja2Templates(
+            directory=str(Path(__file__).resolve().parents[1] / "app" / "templates")
+        ),
+    )
+
+    with SessionLocal() as db:
+        first_bin = Bin(name="First photo bin")
+        second_bin = Bin(name="Second photo bin")
+        gear = InventoryItem(name="Photo test guitar", item_type_id=1)
+        db.add_all([first_bin, second_bin, gear])
+        db.flush()
+
+        bin_photos = [
+            Photo(bin_id=first_bin.id, filename="bin-a.jpg", sort_order=0),
+            Photo(bin_id=first_bin.id, filename="bin-b.jpg", sort_order=1),
+            Photo(bin_id=second_bin.id, filename="other-bin.jpg", sort_order=0),
+        ]
+        gear_photos = [
+            InventoryPhoto(inventory_item_id=gear.id, filename="gear-a.jpg", sort_order=0),
+            InventoryPhoto(inventory_item_id=gear.id, filename="gear-b.jpg", sort_order=1),
+            InventoryPhoto(inventory_item_id=gear.id, filename="gear-c.jpg", sort_order=2),
+        ]
+        db.add_all(bin_photos + gear_photos)
+        db.commit()
+        bin_b_id = bin_photos[1].id
+        gear_c_id = gear_photos[2].id
+        first_bin_id = first_bin.id
+        second_bin_id = second_bin.id
+        gear_id = gear.id
+
+    assert client.post(f"/photo/{bin_b_id}/move/left").status_code == 200
+    assert client.post(f"/photo/item/{gear_c_id}/move/left").status_code == 200
+    assert client.post(f"/photo/item/{gear_c_id}/move/up").status_code == 400
+
+    with SessionLocal() as db:
+        first_bin_order = [
+            p.filename for p in db.query(Photo)
+            .filter(Photo.bin_id == first_bin_id)
+            .order_by(Photo.sort_order, Photo.id)
+        ]
+        second_bin_order = [
+            p.filename for p in db.query(Photo)
+            .filter(Photo.bin_id == second_bin_id)
+            .order_by(Photo.sort_order, Photo.id)
+        ]
+        gear_order = [
+            p.filename for p in db.query(InventoryPhoto)
+            .filter(InventoryPhoto.inventory_item_id == gear_id)
+            .order_by(InventoryPhoto.sort_order, InventoryPhoto.id)
+        ]
+
+    assert first_bin_order == ["bin-b.jpg", "bin-a.jpg"]
+    assert second_bin_order == ["other-bin.jpg"]
+    assert gear_order == ["gear-a.jpg", "gear-c.jpg", "gear-b.jpg"]

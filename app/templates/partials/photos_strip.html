@@ -16,6 +16,30 @@
       class="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs">
       ×
     </button>
+    <div class="absolute bottom-1 left-1 flex gap-1">
+      {% if not loop.first %}
+      <button
+        hx-post="/photo/{{ photo.id }}/move/left"
+        hx-target="#photos-strip"
+        hx-swap="innerHTML"
+        aria-label="Move photo left"
+        title="Move photo left"
+        class="bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">
+        ←
+      </button>
+      {% endif %}
+      {% if not loop.last %}
+      <button
+        hx-post="/photo/{{ photo.id }}/move/right"
+        hx-target="#photos-strip"
+        hx-swap="innerHTML"
+        aria-label="Move photo right"
+        title="Move photo right"
+        class="bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm">
+        →
+      </button>
+      {% endif %}
+    </div>
     <!-- Lightbox -->
     <div id="lightbox-{{ photo.id }}" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
       onclick="this.classList.add('hidden')">
