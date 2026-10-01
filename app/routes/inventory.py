@@ -2,6 +2,7 @@ import io
 import base64
 import json
 import os
+import logging
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/inventory")
 templates = Jinja2Templates(directory="/app/app/templates")
 
 PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
+logger = logging.getLogger(__name__)
 
 CONDITIONS = ["Mint", "Excellent", "Good", "Fair", "Poor"]
 
@@ -350,10 +352,15 @@ async def edit_item(token: str, request: Request, db: Session = Depends(get_db))
 async def delete_item(token: str, db: Session = Depends(get_db)):
     item = db.query(InventoryItem).filter(InventoryItem.token == token).first()
     if item:
-        for photo in item.photos:
-            filepath = os.path.join(PHOTOS_DIR, photo.filename)
-            if os.path.exists(filepath):
-                os.remove(filepath)
+        filenames = [photo.filename for photo in item.photos]
         db.delete(item)
         db.commit()
+        for filename in filenames:
+            filepath = os.path.join(PHOTOS_DIR, filename)
+            try:
+                os.remove(filepath)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                logger.warning("Failed to remove photo file %s after DB delete", filepath, exc_info=True)
     return RedirectResponse("/inventory", status_code=303)

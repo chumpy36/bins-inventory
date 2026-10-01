@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/bin")
 templates = Jinja2Templates(directory="/app/app/templates")
 
 PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
+logger = logging.getLogger(__name__)
 
 
 @router.get("/new", response_class=HTMLResponse)
@@ -102,12 +104,17 @@ async def edit_bin(
 async def delete_bin(token: str, db: Session = Depends(get_db)):
     b = db.query(Bin).filter(Bin.token == token).first()
     if b:
-        for photo in b.photos:
-            filepath = os.path.join(PHOTOS_DIR, photo.filename)
-            if os.path.exists(filepath):
-                os.remove(filepath)
+        filenames = [photo.filename for photo in b.photos]
         db.delete(b)
         db.commit()
+        for filename in filenames:
+            filepath = os.path.join(PHOTOS_DIR, filename)
+            try:
+                os.remove(filepath)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                logger.warning("Failed to remove photo file %s after DB delete", filepath, exc_info=True)
     return RedirectResponse("/", status_code=303)
 
 

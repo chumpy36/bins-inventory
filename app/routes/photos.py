@@ -1,6 +1,7 @@
 import os
 import uuid
 import logging
+import warnings
 from fastapi import APIRouter, Depends, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -16,6 +17,15 @@ UPLOAD_ERROR = "Couldn't read that file as an image — try a JPEG, PNG, or HEIC
 MAX_UPLOAD_MB = 25
 MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 TOO_LARGE_ERROR = f"That file is too large — photos must be under {MAX_UPLOAD_MB}MB."
+
+# A 40-megapixel ceiling is generous for phone photos while bounding decoded
+# memory use (an RGB image alone needs about 120 MB before conversion overhead).
+MAX_IMAGE_PIXELS = 40_000_000
+IMAGE_TOO_LARGE_ERROR = "That image is too large to process — photos must be 40 megapixels or smaller."
+
+
+class ImageTooLargeError(ValueError):
+    """Raised when image metadata or Pillow's safety checks exceed our limit."""
 
 
 async def read_capped(file):
@@ -64,7 +74,19 @@ def move_photo(db: Session, photo, siblings, direction: str):
 
 
 def resize_and_save(upload: bytes, filename: str):
-    img = Image.open(io.BytesIO(upload))
+    # Pillow opens lazily, so inspect dimensions before pixel decoding,
+    # conversion, or resizing. Turn Pillow's own bomb warning into a rejection
+    # too, including for formats with unusually large declared dimensions.
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Image.DecompressionBombWarning)
+            img = Image.open(io.BytesIO(upload))
+    except Image.DecompressionBombWarning as exc:
+        raise ImageTooLargeError from exc
+    except Image.DecompressionBombError as exc:
+        raise ImageTooLargeError from exc
+    if img.width * img.height > MAX_IMAGE_PIXELS:
+        raise ImageTooLargeError
     # Convert to RGB (handles PNG, HEIC, etc.)
     if img.mode != "RGB":
         img = img.convert("RGB")
@@ -105,6 +127,12 @@ async def upload_photo(
     os.makedirs(PHOTOS_DIR, exist_ok=True)
     try:
         resize_and_save(contents, filename)
+    except ImageTooLargeError:
+        return templates.TemplateResponse("partials/photos_strip.html", {
+            "request": request,
+            "bin": b,
+            "error": IMAGE_TOO_LARGE_ERROR,
+        })
     except Exception:
         return templates.TemplateResponse("partials/photos_strip.html", {
             "request": request,
@@ -147,6 +175,12 @@ async def upload_inventory_photo(
     os.makedirs(PHOTOS_DIR, exist_ok=True)
     try:
         resize_and_save(contents, filename)
+    except ImageTooLargeError:
+        return templates.TemplateResponse("partials/inventory_photos_strip.html", {
+            "request": request,
+            "item": item,
+            "error": IMAGE_TOO_LARGE_ERROR,
+        })
     except Exception:
         return templates.TemplateResponse("partials/inventory_photos_strip.html", {
             "request": request,
