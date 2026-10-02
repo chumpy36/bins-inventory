@@ -47,7 +47,8 @@ from app.templating import templates
 
 router = APIRouter(prefix="/photo")
 
-PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
+DEFAULT_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
+PHOTOS_DIR = os.getenv("PHOTOS_DIR", os.path.join(os.getenv("DATA_DIR", DEFAULT_DATA_DIR), "photos"))
 MAX_WIDTH = 1200
 JPEG_QUALITY = 85
 

@@ -209,3 +209,79 @@ def test_photo_reordering_is_scoped_to_its_record(client, monkeypatch):
     assert first_bin_order == ["bin-b.jpg", "bin-a.jpg"]
     assert second_bin_order == ["other-bin.jpg"]
     assert gear_order == ["gear-a.jpg", "gear-c.jpg", "gear-b.jpg"]
+
+
+def test_deep_and_cyclic_location_rendering(client):
+    from types import SimpleNamespace
+    from app.routes.locations import _tree
+
+    locations = [SimpleNamespace(id=i, parent_id=i - 1 if i else None, name=str(i))
+                 for i in range(1500)]
+    rows = _tree(locations)
+    assert [row['location'].id for row in rows] == list(range(1500))
+    assert rows[-1]['depth'] == 1499
+    locations[0].parent_id = 1499
+    assert len(_tree(locations)) == 1500
+
+
+@pytest.mark.parametrize('value', ['/\n/attacker.example', '/\t/attacker.example', '/path\r', '/path\x7f'])
+def test_redirect_rejects_control_characters(client, value):
+    from app.routes.suggest import _safe_next_url
+    assert _safe_next_url(value, '/safe') == '/safe'
+
+
+def test_authenticated_mutation_origin_policy(client, monkeypatch):
+    from types import SimpleNamespace
+    from fastapi import FastAPI
+    from app import cf_access
+
+    monkeypatch.setattr(cf_access, 'TEAM_DOMAIN', 'test.cloudflareaccess.com')
+    monkeypatch.setattr(cf_access, 'AUD', 'test-audience')
+    monkeypatch.setattr(cf_access, 'EXPECTED_ORIGIN', 'https://inventory.hollandit.work')
+    monkeypatch.setattr(cf_access.PyJWKClient, 'get_signing_key_from_jwt',
+                        lambda *args: SimpleNamespace(key='test-key'))
+    claims = {'email': 'test@example.com'}
+    monkeypatch.setattr(cf_access.jwt, 'decode', lambda *args, **kwargs: claims)
+    application = FastAPI()
+    application.add_middleware(cf_access.CloudflareAccessMiddleware)
+
+    @application.post('/mutate')
+    async def mutate():
+        return {'ok': True}
+
+    with TestClient(application) as authenticated:
+        headers = {'Cf-Access-Jwt-Assertion': 'test-token'}
+        assert authenticated.post('/mutate').status_code == 403
+        assert authenticated.post('/mutate', headers=headers).status_code == 403
+        assert authenticated.post('/mutate', headers={**headers, 'Origin': 'https://attacker.example'}).status_code == 403
+        assert authenticated.post('/mutate', headers={**headers, 'Origin': 'null', 'Referer': 'https://inventory.hollandit.work/'}).status_code == 403
+        assert authenticated.post('/mutate', headers={**headers, 'Origin': 'https://inventory.hollandit.work'}).status_code == 200
+        assert authenticated.post('/mutate', headers={**headers, 'Referer': 'https://inventory.hollandit.work/bin/test'}).status_code == 200
+        claims.clear()
+        claims['common_name'] = 'test-service'
+        assert authenticated.post('/mutate', headers=headers).status_code == 200
+        assert authenticated.post('/mutate', headers={**headers, 'Origin': 'https://attacker.example'}).status_code == 403
+
+
+def test_photo_upload_limits_and_storage(client, monkeypatch):
+    import io
+    from PIL import Image
+    from app.routes import photos
+
+    assert Path(photos.PHOTOS_DIR) == Path(os.environ['DATA_DIR']) / 'photos'
+    record = client.post('/api/bins', json={'name': 'Upload test'}).json()
+    image_bytes = io.BytesIO()
+    Image.new('RGB', (10, 10)).save(image_bytes, format='PNG')
+    upload_url = f"/photo/upload/{record['token']}"
+    files = {'file': ('test.png', image_bytes.getvalue(), 'image/png')}
+    assert client.post(upload_url, files=files).status_code == 200
+    before = set(Path(photos.PHOTOS_DIR).iterdir())
+    assert len(before) == 1
+    monkeypatch.setattr(photos, 'MAX_IMAGE_PIXELS', 50)
+    response = client.post(upload_url, files=files)
+    assert photos.IMAGE_TOO_LARGE_ERROR in response.text
+    assert set(Path(photos.PHOTOS_DIR).iterdir()) == before
+    monkeypatch.setattr(photos, 'MAX_UPLOAD_BYTES', 5)
+    response = client.post(upload_url, files=files)
+    assert photos.TOO_LARGE_ERROR in response.text
+    assert set(Path(photos.PHOTOS_DIR).iterdir()) == before

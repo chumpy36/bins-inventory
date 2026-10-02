@@ -24,7 +24,8 @@ API_ERROR = "Couldn't get suggestions right now — try again in a minute."
 
 
 def _safe_next_url(value: str | None, fallback: str) -> str:
-    if not value or not value.startswith("/") or value.startswith("//") or "\\" in value:
+    if (not value or not value.startswith("/") or value.startswith("//")
+            or "\\" in value or any(ord(char) < 32 or ord(char) == 127 for char in value)):
         return fallback
     return value
 

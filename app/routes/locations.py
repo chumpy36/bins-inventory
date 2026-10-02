@@ -44,12 +44,15 @@ def _tree(locations):
     rows, visited = [], set()
 
     def visit(loc, depth):
-        if loc.id in visited:
-            return
-        visited.add(loc.id)
-        rows.append({"location": loc, "depth": depth})
-        for child in by_parent.get(loc.id, []):
-            visit(child, depth + 1)
+        pending = [(loc, depth)]
+        while pending:
+            current, current_depth = pending.pop()
+            if current.id in visited:
+                continue
+            visited.add(current.id)
+            rows.append({"location": current, "depth": current_depth})
+            pending.extend((child, current_depth + 1)
+                           for child in reversed(by_parent.get(current.id, [])))
 
     location_ids = {loc.id for loc in locations}
     roots = [loc for loc in locations if loc.parent_id is None or loc.parent_id not in location_ids]

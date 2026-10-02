@@ -30,6 +30,11 @@ created through the HTML interface retain a null value.
 Human browser requests that change data must include a same-app `Origin` or
 `Referer` header. Cloudflare service-token requests may omit both.
 
+Photo uploads default to `DATA_DIR/photos` (or the repository's `data/photos`
+when `DATA_DIR` is unset), matching the local static photo directory. A
+`PHOTOS_DIR` override must point to that same served directory. Uploads are
+limited to 25 MB compressed and 40 megapixels decoded.
+
 ## Gear attributes
 
 Gear requests use an `attributes` object keyed by the definitions for that item
