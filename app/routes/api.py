@@ -345,10 +345,21 @@ def update_location(object_id: int, payload: LocationUpdate, db: Session = Depen
     obj = _require(db, Location, object_id, "Location")
     values = payload.model_dump(exclude_unset=True)
     parent_id = values.get("parent_id")
-    if parent_id == object_id:
-        raise HTTPException(status_code=422, detail="A location cannot be its own parent")
     if parent_id is not None:
         _require(db, Location, parent_id, "Parent location")
+        children = {}
+        for location_id, candidate_parent in db.query(Location.id, Location.parent_id).all():
+            children.setdefault(candidate_parent, []).append(location_id)
+        descendants, pending = set(), list(children.get(object_id, []))
+        while pending:
+            child_id = pending.pop()
+            if child_id == object_id:
+                break
+            if child_id not in descendants:
+                descendants.add(child_id)
+                pending.extend(children.get(child_id, []))
+        if parent_id == object_id or parent_id in descendants:
+            raise HTTPException(status_code=422, detail="A location cannot be moved beneath itself or one of its descendants")
     _apply(obj, values); db.commit(); db.refresh(obj)
     return _location_json(obj)
 

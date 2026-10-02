@@ -5,7 +5,6 @@ import os
 import anthropic
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.ai_suggest import MODEL, SUGGESTION_SCHEMA, build_request_params
@@ -14,13 +13,20 @@ from app.models import AISuggestion, Bin, Item
 
 logger = logging.getLogger(__name__)
 
+from app.templating import templates
+
 router = APIRouter(prefix="/bin")
 review_router = APIRouter()
-templates = Jinja2Templates(directory="/app/app/templates")
 
 NO_KEY_ERROR = "AI suggestions aren't configured yet (ANTHROPIC_API_KEY is not set)."
 NO_PHOTOS_ERROR = "This bin has no photos to analyze — add a photo first."
 API_ERROR = "Couldn't get suggestions right now — try again in a minute."
+
+
+def _safe_next_url(value: str | None, fallback: str) -> str:
+    if not value or not value.startswith("/") or value.startswith("//") or "\\" in value:
+        return fallback
+    return value
 
 
 def pending_context(b):
@@ -56,9 +62,9 @@ async def suggest_items(token: str, request: Request, db: Session = Depends(get_
     if params is None:
         return _suggest_error(request, b, NO_PHOTOS_ERROR)
 
-    client = anthropic.Anthropic()
     try:
-        response = client.messages.create(**params)
+        async with anthropic.AsyncAnthropic() as client:
+            response = await client.messages.create(**params)
     except anthropic.APIError:
         logger.exception("Anthropic API error during suggest for bin %s", b.id)
         return _suggest_error(request, b, API_ERROR)
@@ -111,9 +117,7 @@ async def accept_suggestions(token: str, request: Request, db: Session = Depends
     db.query(AISuggestion).filter(AISuggestion.bin_id == b.id).delete()
     db.commit()
 
-    next_url = form.get("next") or f"/bin/{b.token}"
-    if not next_url.startswith("/"):
-        next_url = f"/bin/{b.token}"
+    next_url = _safe_next_url(form.get("next"), f"/bin/{b.token}")
     return RedirectResponse(next_url, status_code=303)
 
 

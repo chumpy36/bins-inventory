@@ -2,7 +2,6 @@ import io
 import os
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import qrcode
 import qrcode.image.svg
@@ -11,8 +10,9 @@ import base64
 from app.database import get_db
 from app.models import Bin
 
+from app.templating import templates
+
 router = APIRouter(prefix="/qr")
-templates = Jinja2Templates(directory="/app/app/templates")
 
 BASE_URL = os.getenv("BASE_URL", "https://bins.hollandit.work")
 

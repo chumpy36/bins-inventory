@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.database import get_db
 from app.models import Bin, Item, InventoryItem, ItemAttribute
 
+from app.templating import templates
+
 router = APIRouter()
-templates = Jinja2Templates(directory="/app/app/templates")
 
 
 @router.get("/search", response_class=HTMLResponse)

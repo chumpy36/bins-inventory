@@ -5,7 +5,6 @@ import os
 import logging
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import qrcode
 
@@ -15,8 +14,9 @@ from app.models import (
     ItemAttribute, Location, Category,
 )
 
+from app.templating import templates
+
 router = APIRouter(prefix="/inventory")
-templates = Jinja2Templates(directory="/app/app/templates")
 
 PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
 logger = logging.getLogger(__name__)

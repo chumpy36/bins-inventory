@@ -9,12 +9,18 @@ IMAGE_NAME="bins-inventory"
 
 echo "=== Bins Inventory Deploy ==="
 
-# Check for uncommitted changes
+# Never stage or commit implicitly: the working tree may contain unrelated
+# photos, notes, or other user files.
 cd "$REPO_DIR"
 if [ -n "$(git status --porcelain)" ]; then
-  echo "Committing local changes..."
-  git add -A
-  git commit -m "deploy: $(date '+%Y-%m-%d %H:%M')"
+  echo "Refusing deploy: working tree has uncommitted or untracked files. Commit only the intended changes first." >&2
+  exit 1
+fi
+
+BRANCH="$(git branch --show-current)"
+if [ "$BRANCH" != "main" ]; then
+  echo "Refusing deploy: expected branch main, found '$BRANCH'." >&2
+  exit 1
 fi
 
 echo "Pushing to GitHub..."

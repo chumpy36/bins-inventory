@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
@@ -8,8 +7,9 @@ from sqlalchemy import func
 from app.database import get_db
 from app.models import AISuggestion, Bin, Category, Item, InventoryItem, ItemType
 
+from app.templating import templates
+
 router = APIRouter()
-templates = Jinja2Templates(directory="/app/app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)

@@ -4,7 +4,6 @@ import logging
 import warnings
 from fastapi import APIRouter, Depends, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from PIL import Image
 import io
@@ -44,8 +43,9 @@ from app.models import Photo, Bin, InventoryPhoto, InventoryItem
 
 logger = logging.getLogger(__name__)
 
+from app.templating import templates
+
 router = APIRouter(prefix="/photo")
-templates = Jinja2Templates(directory="/app/app/templates")
 
 PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
 MAX_WIDTH = 1200

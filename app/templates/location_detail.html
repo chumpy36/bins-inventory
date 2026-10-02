@@ -6,7 +6,7 @@
   <div>
     <div class="text-sm text-gray-400 mb-1">
       <a href="/locations" class="hover:text-indigo-500">Locations</a>
-      {% if loc.parent %} › <a href="/locations/{{ loc.parent.id }}" class="hover:text-indigo-500">{{ loc.parent.name }}</a>{% endif %}
+      {% for ancestor in ancestors %} › <a href="/locations/{{ ancestor.id }}" class="hover:text-indigo-500">{{ ancestor.name }}</a>{% endfor %}
     </div>
     <h1 class="text-2xl font-bold text-gray-900">{{ loc.name }}</h1>
     <span class="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 mt-1 inline-block">

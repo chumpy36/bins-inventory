@@ -3,6 +3,12 @@
 The API is served under `/api` and uses the same Cloudflare Access protection as
 the web interface. Interactive OpenAPI documentation is available at `/docs`.
 
+## Runtime data
+
+The container stores the SQLite database at `/app/data/bins.db` and photos in
+`/app/data/photos/`. Locally, set `DATA_DIR` to the directory containing
+`bins.db`; the default is the repository's `data/` directory.
+
 ## Resources
 
 | Resource | List | Create | Get | Update |
@@ -20,6 +26,9 @@ API-created records store the authenticated Cloudflare Access email in
 `created_by`. Service-token requests store the token's `common_name` identifier,
 because those JWTs do not carry a human email. Existing records and records
 created through the HTML interface retain a null value.
+
+Human browser requests that change data must include a same-app `Origin` or
+`Referer` header. Cloudflare service-token requests may omit both.
 
 ## Gear attributes
 

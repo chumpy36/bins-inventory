@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
 from app.models import Item, Bin
 
+from app.templating import templates
+
 router = APIRouter(prefix="/item")
-templates = Jinja2Templates(directory="/app/app/templates")
 
 
 QUANTITY_ERROR = "Quantity must be at least 1."

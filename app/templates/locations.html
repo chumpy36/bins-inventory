@@ -14,8 +14,8 @@
   "other": "bg-gray-100 text-gray-600",
 } %}
 
-{% macro loc_card(loc, indent) %}
-<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-2 {% if indent %}ml-6 border-l-4 border-l-gray-100{% endif %}">
+{% macro loc_card(loc, depth) %}
+<div class="bg-white rounded-2xl border border-gray-200 p-4 mb-2" style="margin-left: {{ [depth, 6]|min * 1.5 }}rem">
   <div class="flex items-start gap-3">
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
@@ -81,7 +81,7 @@
                 class="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm bg-white">
                 <option value="">— None —</option>
                 {% for l in locations %}
-                {% if l.id != loc.id %}
+                {% if l.id != loc.id and l.id not in descendant_ids[loc.id] %}
                 <option value="{{ l.id }}" {% if loc.parent_id == l.id %}selected{% endif %}>{{ l.name }}</option>
                 {% endif %}
                 {% endfor %}
@@ -111,14 +111,9 @@
 </div>
 {% endmacro %}
 
-{% if top_locations %}
-  {% for loc in top_locations %}
-    {{ loc_card(loc, false) }}
-    {% if by_parent.get(loc.id) %}
-      {% for child in by_parent[loc.id] %}
-        {{ loc_card(child, true) }}
-      {% endfor %}
-    {% endif %}
+{% if location_rows %}
+  {% for row in location_rows %}
+    {{ loc_card(row.location, row.depth) }}
   {% endfor %}
 {% else %}
 <p class="text-gray-400 text-sm mb-4">No locations yet.</p>

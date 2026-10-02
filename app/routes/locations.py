@@ -3,7 +3,6 @@ import base64
 import os
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 import qrcode
@@ -11,8 +10,9 @@ import qrcode
 from app.database import get_db
 from app.models import Location, Bin, InventoryItem
 
+from app.templating import templates
+
 router = APIRouter(prefix="/locations")
-templates = Jinja2Templates(directory="/app/app/templates")
 
 BASE_URL = os.getenv("BASE_URL", "https://inventory.hollandit.work")
 
@@ -36,26 +36,53 @@ def _make_qr_b64(url: str) -> str:
 
 
 def _tree(locations):
-    """Return (top_level_list, {parent_id: [children]}) sorted by name."""
+    """Flatten all location levels for display, tolerating legacy bad links."""
     by_parent = {}
-    top = []
     for loc in sorted(locations, key=lambda l: l.name):
-        if loc.parent_id:
+        if loc.parent_id is not None:
             by_parent.setdefault(loc.parent_id, []).append(loc)
-        else:
-            top.append(loc)
-    return top, by_parent
+    rows, visited = [], set()
+
+    def visit(loc, depth):
+        if loc.id in visited:
+            return
+        visited.add(loc.id)
+        rows.append({"location": loc, "depth": depth})
+        for child in by_parent.get(loc.id, []):
+            visit(child, depth + 1)
+
+    location_ids = {loc.id for loc in locations}
+    roots = [loc for loc in locations if loc.parent_id is None or loc.parent_id not in location_ids]
+    for loc in sorted(roots, key=lambda l: l.name):
+        visit(loc, 0)
+    for loc in sorted(locations, key=lambda l: l.name):
+        visit(loc, 0)
+    return rows
+
+
+def _descendant_ids(locations, loc_id):
+    children = {}
+    for location in locations:
+        children.setdefault(location.parent_id, []).append(location.id)
+    result, pending = set(), list(children.get(loc_id, []))
+    while pending:
+        child_id = pending.pop()
+        if child_id in result or child_id == loc_id:
+            continue
+        result.add(child_id)
+        pending.extend(children.get(child_id, []))
+    return result
 
 
 @router.get("", response_class=HTMLResponse)
 async def list_locations(request: Request, db: Session = Depends(get_db)):
     locations = db.query(Location).order_by(Location.name).all()
-    top, by_parent = _tree(locations)
+    descendants = {loc.id: _descendant_ids(locations, loc.id) for loc in locations}
     return templates.TemplateResponse("locations.html", {
         "request": request,
         "locations": locations,
-        "top_locations": top,
-        "by_parent": by_parent,
+        "location_rows": _tree(locations),
+        "descendant_ids": descendants,
         "kind_labels": KIND_LABELS,
     })
 
@@ -65,12 +92,19 @@ async def location_detail(loc_id: int, request: Request, db: Session = Depends(g
     loc = db.query(Location).filter(Location.id == loc_id).first()
     if not loc:
         return HTMLResponse("Location not found", status_code=404)
+    ancestors, parent = [], loc.parent
+    seen = {loc.id}
+    while parent and parent.id not in seen:
+        ancestors.append(parent)
+        seen.add(parent.id)
+        parent = parent.parent
     url = f"{BASE_URL}/locations/{loc_id}"
     qr_b64 = _make_qr_b64(url)
     children = db.query(Location).filter(Location.parent_id == loc_id).order_by(Location.name).all()
     return templates.TemplateResponse("location_detail.html", {
         "request": request,
         "loc": loc,
+        "ancestors": list(reversed(ancestors)),
         "children": children,
         "kind_labels": KIND_LABELS,
         "qr_b64": qr_b64,
@@ -106,6 +140,8 @@ async def create_location(
         parent_id=parent_id or None,
         notes=notes.strip() if notes else None,
     )
+    if loc.parent_id and not db.query(Location).filter(Location.id == loc.parent_id).first():
+        return HTMLResponse("Parent location not found", status_code=404)
     db.add(loc)
     db.commit()
     return RedirectResponse("/locations", status_code=303)
@@ -122,9 +158,15 @@ async def edit_location(
 ):
     loc = db.query(Location).filter(Location.id == loc_id).first()
     if loc:
+        parent_id = parent_id or None
+        locations = db.query(Location).all()
+        if parent_id and (parent_id == loc_id or parent_id in _descendant_ids(locations, loc_id)):
+            return HTMLResponse("A location cannot be moved beneath itself or one of its descendants.", status_code=422)
+        if parent_id and not any(location.id == parent_id for location in locations):
+            return HTMLResponse("Parent location not found", status_code=404)
         loc.name = name.strip()
         loc.kind = kind
-        loc.parent_id = parent_id or None
+        loc.parent_id = parent_id
         loc.notes = notes.strip() if notes else None
         db.commit()
     return RedirectResponse("/locations", status_code=303)

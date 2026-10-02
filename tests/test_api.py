@@ -68,6 +68,17 @@ def test_location_crud_and_reference_validation(client):
     child_id = child.json()["id"]
     assert client.patch(f"/api/locations/{child_id}", json={"notes": "East wall"}).json()["notes"] == "East wall"
     assert client.patch(f"/api/locations/{child_id}", json={"parent_id": child_id}).status_code == 422
+    assert client.patch(f"/api/locations/{parent_id}", json={"parent_id": child_id}).status_code == 422
+    grandchild = client.post("/api/locations", json={
+        "name": "Guitar case", "kind": "case", "parent_id": child_id,
+    })
+    assert grandchild.status_code == 201
+    hierarchy = client.get("/locations")
+    assert hierarchy.status_code == 200
+    assert all(name in hierarchy.text for name in ("Music room", "Guitar rack", "Guitar case"))
+    detail = client.get(f"/locations/{grandchild.json()['id']}")
+    assert detail.status_code == 200
+    assert "Music room" in detail.text and "Guitar rack" in detail.text
     assert client.post("/api/bins", json={"name": "Bad location", "location_id": 99999}).status_code == 404
 
 
@@ -112,6 +123,18 @@ def test_validation_errors_are_safe(client):
         "attributes": {"not_a_real_field": "value"},
     })
     assert response.status_code == 422
+
+
+def test_same_app_origin_and_redirect_validation():
+    from app import cf_access
+    from app.routes.suggest import _safe_next_url
+
+    assert cf_access._same_app_origin("https://inventory.hollandit.work/path")
+    assert not cf_access._same_app_origin("https://attacker.example/submit")
+    assert not cf_access._same_app_origin("null")
+    assert _safe_next_url("/locations", "/bin/token") == "/locations"
+    assert _safe_next_url("//attacker.example", "/bin/token") == "/bin/token"
+    assert _safe_next_url("/\\\\attacker.example", "/bin/token") == "/bin/token"
 
 
 def test_migrations_are_idempotent(client):

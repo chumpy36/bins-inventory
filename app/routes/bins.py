@@ -2,15 +2,15 @@ import os
 import logging
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
 from app.models import Bin, Category, Location
 
+from app.templating import templates
+
 router = APIRouter(prefix="/bin")
-templates = Jinja2Templates(directory="/app/app/templates")
 
 PHOTOS_DIR = os.getenv("PHOTOS_DIR", "/app/data/photos")
 logger = logging.getLogger(__name__)
