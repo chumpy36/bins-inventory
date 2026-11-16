@@ -110,47 +110,43 @@ def resize_and_save(upload: bytes, filename: str):
 async def upload_photo(
     token: str,
     request: Request,
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(..., alias="file"),
     db: Session = Depends(get_db),
 ):
     b = db.query(Bin).filter(Bin.token == token).first()
     if not b:
         return HTMLResponse("Bin not found", status_code=404)
 
-    contents = await read_capped(file)
-    if contents is None:
-        return templates.TemplateResponse("partials/photos_strip.html", {
-            "request": request,
-            "bin": b,
-            "error": TOO_LARGE_ERROR,
-        })
-    filename = f"{uuid.uuid4().hex}.jpg"
     os.makedirs(PHOTOS_DIR, exist_ok=True)
-    try:
-        resize_and_save(contents, filename)
-    except ImageTooLargeError:
-        return templates.TemplateResponse("partials/photos_strip.html", {
-            "request": request,
-            "bin": b,
-            "error": IMAGE_TOO_LARGE_ERROR,
-        })
-    except Exception:
-        return templates.TemplateResponse("partials/photos_strip.html", {
-            "request": request,
-            "bin": b,
-            "error": UPLOAD_ERROR,
-        })
-
-    # Max sort order + 1
     max_order = max((p.sort_order for p in b.photos), default=-1)
-    photo = Photo(bin_id=b.id, filename=filename, sort_order=max_order + 1)
-    db.add(photo)
-    db.commit()
+    added = 0
+    errors = []
+    for file in files:
+        contents = await read_capped(file)
+        if contents is None:
+            errors.append(TOO_LARGE_ERROR)
+            continue
+        filename = f"{uuid.uuid4().hex}.jpg"
+        try:
+            resize_and_save(contents, filename)
+        except ImageTooLargeError:
+            errors.append(IMAGE_TOO_LARGE_ERROR)
+            continue
+        except Exception:
+            errors.append(UPLOAD_ERROR)
+            continue
+        db.add(Photo(bin_id=b.id, filename=filename, sort_order=max_order + added + 1))
+        added += 1
+
+    if added:
+        db.commit()
     db.refresh(b)
 
+    error = " ".join(errors)
+    if added and errors:
+        error = f"Added {added} photos. " + error
     return templates.TemplateResponse("partials/photos_strip.html", {
-        "request": request,
-        "bin": b,
+        "request": request, "bin": b, "error": error,
     })
 
 
@@ -158,46 +154,49 @@ async def upload_photo(
 async def upload_inventory_photo(
     token: str,
     request: Request,
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(..., alias="file"),
     db: Session = Depends(get_db),
 ):
     item = db.query(InventoryItem).filter(InventoryItem.token == token).first()
     if not item:
         return HTMLResponse("Item not found", status_code=404)
 
-    contents = await read_capped(file)
-    if contents is None:
-        return templates.TemplateResponse("partials/inventory_photos_strip.html", {
-            "request": request,
-            "item": item,
-            "error": TOO_LARGE_ERROR,
-        })
-    filename = f"{uuid.uuid4().hex}.jpg"
     os.makedirs(PHOTOS_DIR, exist_ok=True)
-    try:
-        resize_and_save(contents, filename)
-    except ImageTooLargeError:
-        return templates.TemplateResponse("partials/inventory_photos_strip.html", {
-            "request": request,
-            "item": item,
-            "error": IMAGE_TOO_LARGE_ERROR,
-        })
-    except Exception:
-        return templates.TemplateResponse("partials/inventory_photos_strip.html", {
-            "request": request,
-            "item": item,
-            "error": UPLOAD_ERROR,
-        })
-
     max_order = max((p.sort_order for p in item.photos), default=-1)
-    photo = InventoryPhoto(inventory_item_id=item.id, filename=filename, sort_order=max_order + 1)
-    db.add(photo)
-    db.commit()
+    added = 0
+    errors = []
+    for file in files:
+        contents = await read_capped(file)
+        if contents is None:
+            errors.append(TOO_LARGE_ERROR)
+            continue
+        filename = f"{uuid.uuid4().hex}.jpg"
+        try:
+            resize_and_save(contents, filename)
+        except ImageTooLargeError:
+            errors.append(IMAGE_TOO_LARGE_ERROR)
+            continue
+        except Exception:
+            errors.append(UPLOAD_ERROR)
+            continue
+        db.add(InventoryPhoto(
+            inventory_item_id=item.id,
+            filename=filename,
+            sort_order=max_order + added + 1,
+        ))
+        added += 1
+
+    if added:
+        db.commit()
     db.refresh(item)
 
+    error = " ".join(errors)
+    if added and errors:
+        error = f"Added {added} photos. " + error
     return templates.TemplateResponse("partials/inventory_photos_strip.html", {
         "request": request,
         "item": item,
+        "error": error,
     })
 
 
